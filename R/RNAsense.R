@@ -93,12 +93,12 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
 
 #' Auxiliary function for getFC()
 #'
-#' @param dataset data.frame, rows correspond to different genes, first column contains gene identifiers, second column contains the gene name, columns 3 to n contain the RNAseq count data, column names should start with the condition identifier (e.g. "WT") followed by the time separated by "_"
-#' @param myanalyzeConditions Character vector, Name of experimental conditions
-#' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
-#' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data
+#' @param value output pValue from exact.nb.test
+#' @param FC output logFoldChange from exact.nb.test
+#' @param thFoldChange Numeric, threshold at which fold change is counted to be detected
+#' @param pValueFC Numeric, p-value at which fold change is counted to be detected
 #'
-#' @return Data.frame containing gene names, log fold change and p-values calculated from NBPSeq, each gene appears as often as available time points
+#' @return input plus decision whether fold change has been detected or not
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 

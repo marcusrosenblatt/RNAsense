@@ -7,16 +7,16 @@
 getD(value, FC, thFoldChange = NA, pValueFC = 0.05)
 }
 \arguments{
-\item{dataset}{data.frame, rows correspond to different genes, first column contains gene identifiers, second column contains the gene name, columns 3 to n contain the RNAseq count data, column names should start with the condition identifier (e.g. "WT") followed by the time separated by "_"}
+\item{value}{output pValue from exact.nb.test}
 
-\item{myanalyzeConditions}{Character vector, Name of experimental conditions}
+\item{FC}{output logFoldChange from exact.nb.test}
 
-\item{cores}{Numeric, Number of cores for parallelization, default 1 for no parallelization}
+\item{thFoldChange}{Numeric, threshold at which fold change is counted to be detected}
 
-\item{mytimes}{Numeric vector, Time points of the time-resolved RNA-seq data}
+\item{pValueFC}{Numeric, p-value at which fold change is counted to be detected}
 }
 \value{
-Data.frame containing gene names, log fold change and p-values calculated from NBPSeq, each gene appears as often as available time points
+input plus decision whether fold change has been detected or not
 }
 \description{
 Auxiliary function for getFC()
