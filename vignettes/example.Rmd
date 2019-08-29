@@ -18,7 +18,38 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r cars}
-summary(cars)
+startTime <- Sys.time() # get start time
+analyzeConditions <- c("WT", "MZsox")
+ini <- TRUE
+generatePlots <- TRUE
+
+mypath <- paste0(getwd(), "/Zv11_WTB1-4_sox")
+files <- list.files(path = mypath, recursive = TRUE, include.dirs = TRUE)
+files <- files[which(grepl(".tabular", files))]
+cat("Reading data files.\n")
+for(file in files){
+  nametag <- gsub("\\[|\\]", "", strsplit(strsplit(file, "-")[[1]][2], ".tabular")[[1]][1])
+  replicate <- strsplit(nametag, "hpf")[[1]][2]
+  condition_time <- strsplit(nametag, "hpf")[[1]][1]
+  for(cond in analyzeConditions) {condition_time <- sub(cond, paste0(cond,"_"), condition_time)}
+  condition <- paste0(condition_time, "_", replicate)
+  if(grepl(analyzeConditions[1], nametag) | grepl(analyzeConditions[2], nametag)){
+    if(ini){
+      temp <- as.data.frame(read.table(paste0(mypath, "/",file), sep="\t"))
+      genenames <- read.table(paste0(mypath, "/",file), sep="\t")[,2]
+      colnames(temp) <- c("name", "genename", condition)
+      ini <<- FALSE
+      mydata <- temp
+    } else {
+      temp <- as.data.frame(read.table(paste0(mypath, "/",file), sep="\t")[,3])
+      colnames(temp) <- condition
+      mydata <- cbind(mydata,temp)
+    }
+  }
+}
+# mydata is data in standard format
+thCount <- 100
+nrcores <- 4
 ```
 
 ## Including Plots
