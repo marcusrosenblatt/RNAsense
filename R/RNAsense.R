@@ -77,6 +77,29 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
 
     obj = exact.nb.test(obj, grp1, grp2, print.level = 0);
 
+    # auxiliary function getD
+    getD <- function(value, FC, thFoldChange=NA, pValueFC=0.05){
+      if(is.na(value) | is.na(FC)){return(NA)} else {
+        if(is.na(thFoldChange) & is.na(pValueFC)){
+          return(NA)
+        } else if(!is.na(thFoldChange) & is.na(pValueFC)){
+          if(FC < -log2(thFoldChange)) {return(paste0(analyzeConditions[1], "<", analyzeConditions[2]))}
+          else if(FC > log2(thFoldChange)) {return(paste0(analyzeConditions[1], ">", analyzeConditions[2]))}
+          else return(paste0(analyzeConditions[1], "=", analyzeConditions[2]))
+        } else if(is.na(thFoldChange) & !is.na(pValueFC)){
+          if(value < pValueFC){
+            if(FC < 0) {return(paste0(analyzeConditions[1], "<", analyzeConditions[2]))}
+            if(FC > 0) {return(paste0(analyzeConditions[1], ">", analyzeConditions[2]))}
+          } else return(paste0(analyzeConditions[1], "=", analyzeConditions[2]))
+        } else {
+          if((value < pValueFC) & (FC < -log2(thFoldChange))) {return(paste0(analyzeConditions[1], "<", analyzeConditions[2]))}
+          else if((value < pValueFC) & (FC > log2(thFoldChange))) {return(paste0(analyzeConditions[1], ">", analyzeConditions[2]))}
+          else return(paste0(analyzeConditions[1], "=", analyzeConditions[2]))
+        }
+
+      }
+    }
+
     # ## Output results
     out <- data.frame(name=attr(obj$log.fc, "names"), logFoldChange = obj$log.fc, pValue = obj$p.values, time=t)
     cbind(out, FCdetect=sapply(1:dim(out)[1], function(i){
@@ -91,49 +114,84 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
   return(out)
 }
 
-#' Auxiliary function for getFC()
+#' Combine results
 #'
-#' @param value output pValue from exact.nb.test
-#' @param FC output logFoldChange from exact.nb.test
-#' @param thFoldChange Numeric, threshold at which fold change is counted to be detected
-#' @param pValueFC Numeric, p-value at which fold change is counted to be detected
+#' @description Results of switch and fold change analysis are collected in one data.frame
 #'
-#' @return input plus decision whether fold change has been detected or not
+#' @param myresultSwitch data.frame, output of getSwitch
+#' @param myresultFC data.frame, output of getFC
+#'
+#' @return Data.frame containing information on switch and fold change detection for each gene
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 
-
-getD <- function(value, FC, thFoldChange=NA, pValueFC=0.05){
-  if(is.na(value) | is.na(FC)){return(NA)} else {
-    if(is.na(thFoldChange) & is.na(pValueFC)){
-      return(NA)
-    } else if(!is.na(thFoldChange) & is.na(pValueFC)){
-      if(FC < -log2(thFoldChange)) {return(paste0(analyzeConditions[1], "<", analyzeConditions[2]))}
-      else if(FC > log2(thFoldChange)) {return(paste0(analyzeConditions[1], ">", analyzeConditions[2]))}
-      else return(paste0(analyzeConditions[1], "=", analyzeConditions[2]))
-    } else if(is.na(thFoldChange) & !is.na(pValueFC)){
-      if(value < pValueFC){
-        if(FC < 0) {return(paste0(analyzeConditions[1], "<", analyzeConditions[2]))}
-        if(FC > 0) {return(paste0(analyzeConditions[1], ">", analyzeConditions[2]))}
-      } else return(paste0(analyzeConditions[1], "=", analyzeConditions[2]))
-    } else {
-      if((value < pValueFC) & (FC < -log2(thFoldChange))) {return(paste0(analyzeConditions[1], "<", analyzeConditions[2]))}
-      else if((value < pValueFC) & (FC > log2(thFoldChange))) {return(paste0(analyzeConditions[1], ">", analyzeConditions[2]))}
-      else return(paste0(analyzeConditions[1], "=", analyzeConditions[2]))
-    }
-
-  }
-}
-
-
 combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC){
+  # auxiliary funciton getFCupdown
+  getFCupdown <- function(gene, myresultFC = resultFC){
+    gene <- factor(gene, levels=levels(myresultFC$name))
+    sub <- subset(myresultFC, name==gene)
+    f <- subset(sub, grepl(">", FCdetect))$time
+    g <- subset(sub, grepl("<", FCdetect))$time
+    f <- as.character(format(f, nsmall = 1))
+    g <- as.character(format(g, nsmall = 1))
+    if(length(f)>0){f <- do.call(paste,as.list(paste0(f, "hpf")))} else{f <- ""}
+    if(length(g)>0){g <- do.call(paste,as.list(paste0(g, "hpf")))} else{g <- ""}
+    data.frame(FCdown=f,FCup=g)
+  }
   temp <- do.call(rbind, mclapply(myresultSwitch$genename, function(gene){
     getFCupdown(gene, myresultFC)
   }, mc.cores = nrcores))
   return(cbind(resultSwitch, temp))
 }
 
+#' plot SSGS gene classes
+#'
+#' @description Genes are sorted into groups with respect to switch time and time point of fold change detection. For each group, results of wild type and knockdown-condition are compared by means of fisher's exact test to show whether the knocked down gene enhances or suppresses the respective gene group.
+#'
+#' @param myresultCombined data.frame, output of combineResults
+#' @param mytimes numeric vector, the measurement times
+#' @param myanalyzeConditions character vector, the conditions that were analyzed
+#'
+#' @return SSGS color plot in ggplot format
+#'
+#' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
+
 plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanalyzeConditions = analyzeConditions){
+  # auxiliary function for application of fisher test
+  getFT <- function(myresult=result, myswitch="up",switchtime=3, xaxis="2.5hpf", identifier="FCdown"){
+    if(identifier == "FCdown"){
+      a=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
+                     grepl(xaxis, FCdown)))[1]
+      b=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
+                     grepl(xaxis, FCdown)))[1]
+      c=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
+                     !grepl(xaxis, FCdown)))[1]
+      d=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
+                     !grepl(xaxis, FCdown)))[1]
+    } else {
+      a=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
+                     grepl(xaxis, FCup)))[1]
+      b=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
+                     grepl(xaxis, FCup)))[1]
+      c=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
+                     !grepl(xaxis, FCup)))[1]
+      d=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
+                     !grepl(xaxis, FCup)))[1]
+    }
+
+    pvalue_suppress <- fisher.test(rbind(c(a,b), c(c,d)), alternative="less")$p.value
+    pvalue_enhance <- fisher.test(rbind(c(a,b), c(c,d)), alternative="greater")$p.value
+    if(pvalue_suppress < 1e-20) cluster <- "1E-20 Suppression" else
+      if(pvalue_suppress < 1e-10) cluster <- "1E-10 Suppression" else
+        if(pvalue_suppress < 1e-5) cluster <- "1E-05 Suppression" else
+          if(pvalue_suppress < 1e-2) cluster <- "1E-02 Suppression" else
+            if(pvalue_enhance < 1e-20) cluster <- "1E-20 Enhancement" else
+              if(pvalue_enhance < 1e-10) cluster <- "1E-10 Enhancement" else
+                if(pvalue_enhance < 1e-5) cluster <- "1E-05 Enhancement" else
+                  if(pvalue_enhance < 1e-2) cluster <- "1E-02 Enhancement" else cluster <- "none"
+    data.frame(pvalue_enhance=pvalue_enhance, pvalue_suppress=pvalue_suppress, cluster=cluster, myswitch=myswitch)
+  }
+
   out <- do.call(rbind, lapply(mytimes, function(t){
     do.call(rbind, lapply(paste0(format(seq(2.5,6,by=0.5), nsmall = 1),"hpf"), function(x){
       do.call(rbind, lapply(c("FCdown", "FCup"), function(ident){
@@ -162,6 +220,17 @@ plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanaly
                                                           "1E-20 Suppression"= "violet", "1E-10 Suppression" = "darkblue","1E-05 Suppression" = "blue", "1E-02 Suppression" = "lightblue" ))
   return(P)
 }
+
+#' Output gene tables
+#'
+#' @description Output information on switching genes (up/down) in tabular format (gene identifier/gene name) are created as csv file and written to the current working directory
+#'
+#' @param myresultCombined data.frame, output of combineResults
+#' @param mytimes numeric vector, the measurement times
+#'
+#' @return current working directory
+#'
+#' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 
 outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times){
   genetableUp <- c()
@@ -215,7 +284,6 @@ outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times)
   write.table(geneNametableUp, file=paste0("geneNamelist_switchUp_",nametag,".txt"), sep = "\t", row.names=F, col.names = F)
   write.table(geneNametableDown, file=paste0("geneNamelist_switchDown_",nametag,".txt"), sep = "\t", row.names=F, col.names = F)
 
-
   resultOut1 <- subset(myresultCombined[,c("name","genename", "pvalueSwitch", "switch", "timepoint", "experiment")], experiment==analyzeConditions[1])
   resultOut2 <- subset(myresultCombined[,c("name","genename", "pvalueSwitch", "switch", "timepoint", "experiment")], experiment==analyzeConditions[2])
   resultOut1$timepoint <- format(resultOut1$timepoint, nsmall = 1)
@@ -225,53 +293,5 @@ outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times)
   resultOut$switch <- sub("up", "1", resultOut$switch)
   resultOut$switch <- sub("down", "-1", resultOut$switch)
   write.table(resultOut, file=paste0("switchList_",nametag,".txt"), sep = "\t", row.names=F)
-
+  return(paste("Results written to", getwd()))
 }
-
-
-getFCupdown <- function(gene, myresultFC = resultFC){
-  gene <- factor(gene, levels=levels(myresultFC$name))
-  sub <- subset(myresultFC, name==gene)
-  f <- subset(sub, grepl(">", FCdetect))$time
-  g <- subset(sub, grepl("<", FCdetect))$time
-  f <- as.character(format(f, nsmall = 1))
-  g <- as.character(format(g, nsmall = 1))
-  if(length(f)>0){f <- do.call(paste,as.list(paste0(f, "hpf")))} else{f <- ""}
-  if(length(g)>0){g <- do.call(paste,as.list(paste0(g, "hpf")))} else{g <- ""}
-  data.frame(FCdown=f,FCup=g)
-}
-
-getFT <- function(myresult=result, myswitch="up",switchtime=3, xaxis="2.5hpf", identifier="FCdown"){
-  if(identifier == "FCdown"){
-    a=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
-                   grepl(xaxis, FCdown)))[1]
-    b=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
-                   grepl(xaxis, FCdown)))[1]
-    c=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
-                   !grepl(xaxis, FCdown)))[1]
-    d=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
-                   !grepl(xaxis, FCdown)))[1]
-  } else {
-    a=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
-                   grepl(xaxis, FCup)))[1]
-    b=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
-                   grepl(xaxis, FCup)))[1]
-    c=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
-                   !grepl(xaxis, FCup)))[1]
-    d=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
-                   !grepl(xaxis, FCup)))[1]
-  }
-
-  pvalue_suppress <- fisher.test(rbind(c(a,b), c(c,d)), alternative="less")$p.value
-  pvalue_enhance <- fisher.test(rbind(c(a,b), c(c,d)), alternative="greater")$p.value
-  if(pvalue_suppress < 1e-20) cluster <- "1E-20 Suppression" else
-    if(pvalue_suppress < 1e-10) cluster <- "1E-10 Suppression" else
-      if(pvalue_suppress < 1e-5) cluster <- "1E-05 Suppression" else
-        if(pvalue_suppress < 1e-2) cluster <- "1E-02 Suppression" else
-          if(pvalue_enhance < 1e-20) cluster <- "1E-20 Enhancement" else
-            if(pvalue_enhance < 1e-10) cluster <- "1E-10 Enhancement" else
-              if(pvalue_enhance < 1e-5) cluster <- "1E-05 Enhancement" else
-                if(pvalue_enhance < 1e-2) cluster <- "1E-02 Enhancement" else cluster <- "none"
-  data.frame(pvalue_enhance=pvalue_enhance, pvalue_suppress=pvalue_suppress, cluster=cluster, myswitch=myswitch)
-}
-
