@@ -1,6 +1,8 @@
 ---
-title: "Put the title of your vignette here"
+title: "Vignette for RNAsense package"
 output: rmarkdown::html_vignette
+fig_width: 8 
+fig_height: 6
 vignette: >
   %\VignetteIndexEntry{Put the title of your vignette here}
   %\VignetteEngine{knitr::rmarkdown}
@@ -11,22 +13,21 @@ vignette: >
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+```{r load packages, echo = FALSE}
+require(ggplot2)
+require(parallel)
+require(NBPSeq)
+require(qvalue)
+```
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
+```{r read data}
 startTime <- Sys.time() # get start time
 analyzeConditions <- c("WT", "MZsox")
 ini <- TRUE
-generatePlots <- TRUE
 
 mypath <- paste0(getwd(), "/Zv11_WTB1-4_sox")
 files <- list.files(path = mypath, recursive = TRUE, include.dirs = TRUE)
 files <- files[which(grepl(".tabular", files))]
-cat("Reading data files.\n")
 for(file in files){
   nametag <- gsub("\\[|\\]", "", strsplit(strsplit(file, "-")[[1]][2], ".tabular")[[1]][1])
   replicate <- strsplit(nametag, "hpf")[[1]][2]
@@ -50,14 +51,28 @@ for(file in files){
 # mydata is data in standard format
 thCount <- 100
 nrcores <- 4
+
+vec2Keep <- which(sapply(1:dim(mydata)[1],function(i) !Reduce("&",mydata[i,3:dim(mydata)[2]]<thCount)))
+mydata <- mydata[vec2Keep,]
+genenames <- genenames[vec2Keep]
+times <- sort(unique(as.numeric(do.call(rbind,strsplit(names(mydata)[-c(1,2)], "_"))[,2])))
+
+# apply fold change detection
+resultFC <- RNAsense:::getFC(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = nrcores, mytimes = times)
+
+# generate and output vulcano plot
+ggplot(subset(resultFC, !is.na(FCdetect)), aes(x=logFoldChange, y=-log10(pValue), color=FCdetect)) + xlab("log2(Fold Change)") + geom_point(shape=20)
+
+# apply switch detection
+resultSwitch <- RNAsense:::getSwitch(dataset = mydata, cores = nrcores)
+# collect results
+resultCombined <- RNAsense:::combineResults(resultSwitch, resultFC)
+
+RNAsense:::plotSSGS(resultCombined, c(2.5,3,3.5,4,4.5,5,5.5))
+
+#Output gene switch tables
+#RNAsense:::outputGeneTables(resultCombined)
+
+endTime <- Sys.time() # get end time
+cat(paste0("Finished with Running Time: ", round(as.numeric(as.difftime(endTime-startTime, units = "mins")), digits = 2), " minutes")) 
 ```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
