@@ -14,10 +14,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r load packages, echo = FALSE}
-require(ggplot2)
-require(parallel)
-require(NBPSeq)
-require(qvalue)
+library(ggplot2)
+library(parallel)
+library(NBPSeq)
+library(qvalue)
 ```
 
 ```{r read data}
@@ -31,7 +31,7 @@ thCount <- 100
 nrcores <- 4
 genenames <- mydata$genename
 
-vec2Keep <- which(sapply(1:dim(mydata)[1],function(i) !Reduce("&",mydata[i,3:dim(mydata)[2]]<thCount)))
+vec2Keep <- which(vapply(1:dim(mydata)[1],function(i) !Reduce("&",mydata[i,3:dim(mydata)[2]]<thCount), c(TRUE)))
 mydata <- mydata[vec2Keep,]
 genenames <- genenames[vec2Keep]
 times <- sort(unique(as.numeric(do.call(rbind,strsplit(names(mydata)[-c(1,2)], "_"))[,2])))
@@ -40,7 +40,7 @@ times <- sort(unique(as.numeric(do.call(rbind,strsplit(names(mydata)[-c(1,2)], "
 resultFC <- RNAsense:::getFC(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = nrcores, mytimes = times)
 
 # generate and output vulcano plot
-ggplot(subset(resultFC, !is.na(FCdetect)), aes(x=logFoldChange, y=-log10(pValue), color=FCdetect)) + xlab("log2(Fold Change)") + geom_point(shape=20)
+ggplot(subset(resultFC, FCdetect!="none"), aes(x=logFoldChange, y=-log10(pValue), color=FCdetect)) + xlab("log2(Fold Change)") + geom_point(shape=20)
 
 # apply switch detection
 resultSwitch <- RNAsense:::getSwitch(dataset = mydata, cores = nrcores)
