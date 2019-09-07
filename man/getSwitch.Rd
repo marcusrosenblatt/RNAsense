@@ -5,7 +5,7 @@
 \title{Detect switching genes}
 \usage{
 getSwitch(dataset = mydata, experimentStepDetection = "WT",
-  pValueSwitch = 0.05, cores = 1)
+  pValueSwitch = 0.05, cores = 1, mytimes = times)
 }
 \arguments{
 \item{dataset}{data.frame, rows correspond to different genes, first column contains gene identifiers, second column contains the gene name, columns 3 to n contain the RNAseq count data, column names should start with the condition identifier (e.g. "WT") followed by the time separated by "_"}

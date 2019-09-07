@@ -11,17 +11,18 @@
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 
-getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSwitch = 0.05, cores = 1){
-    data <- mydata[,c(1,2,which(grepl(experimentStepDetection, colnames(dataset))))]
-    mytimes <- as.numeric(do.call(rbind,strsplit(names(data)[-c(1,2)], "_"))[,2])
+getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSwitch = 0.05, cores = 1, mytimes=times){
+    #data <- mydata[,c(1,2,which(grepl(experimentStepDetection, colnames(dataset))))]
+    data <- dataset[,colData(dataset)$condition==experimentStepDetection]
     do.call(rbind, mclapply(1:ceiling(nrow(data)/500), function(index){
-        mydatasub <- subset(data, name%in%unique(data$name)[seq((index-1)*500+1,min(index*500,nrow(data)))])
+        mydatasub <- data[seq((index-1)*500+1,min(index*500,nrow(data))),]
+        #mydatasub <- subset(data, name%in%unique(data$name)[seq((index-1)*500+1,min(index*500,nrow(data)))])
         do.call(rbind, lapply(1:nrow(mydatasub), function(i){
-            temp <- data.frame(value = as.numeric(mydatasub[i,-c(1,2)]), time = mytimes)
+            temp <- data.frame(value = assays(mydatasub)[[1]][i,], time = mytimes)
             out <- cbind(do.call(rbind, lapply(sort(unique(temp$time))[-length(sort(unique(temp$time)))], function(t){
                 temp1 <- subset(temp, time <= t)$value
                 temp2 <- subset(temp, time > t)$value
-                data.frame(name=mydatasub[i,1], genename=mydatasub[i,2], timepoint=t, value=var(temp1)*(length(temp1)-1) + var(temp2)*(length(temp2)-1))
+                data.frame(name=rowData(mydatasub)$name[i], genename=rowData(mydatasub)$genename[i], timepoint=t, value=var(temp1)*(length(temp1)-1) + var(temp2)*(length(temp2)-1))
             })), var=var(temp$value)*(length(temp$value)-1))
             out <- out[which(out$value==min(out$value))[1],]
             pValue <- NA
@@ -76,12 +77,10 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
       }
     }
     out <- do.call(rbind, mclapply(mytimes, function(t){
-        data <- as.matrix(dataset[,c(which(
-              grepl(paste0(myanalyzeConditions[1],"_",t,"_"), names(dataset)) | grepl(paste0(myanalyzeConditions[2],"_",t,"_"), names(dataset))
-        ))])
+        data <- assays(dataset[,colData(dataset)$time==t])[[1]]
 
         ## Specify treatment groups
-        grp.ids = do.call(rbind,strsplit(colnames(data),"_"))[,1]  # Numbers or strings are both OK
+        grp.ids = colData(dataset)$condition[colData(dataset)$time==t]  # Numbers or strings are both OK
 
         ## Estimate normalization factors
         norm.factors = estimate.norm.factors(data);
@@ -93,13 +92,13 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
         obj = estimate.disp(obj, print.level = 0);
 
         ## Perform exact NB test
-        grp1 = analyzeConditions[2];
-        grp2 = analyzeConditions[1];
+        grp1 = myanalyzeConditions[2];
+        grp2 = myanalyzeConditions[1];
 
         obj = exact.nb.test(obj, grp1, grp2, print.level = 0);
 
         # ## Output results
-        out <- data.frame(name=attr(obj$log.fc, "names"), logFoldChange = obj$log.fc, pValue = obj$p.values, time=t)
+        out <- data.frame(name=rowData(dataset)$genename, logFoldChange = obj$log.fc, pValue = obj$p.values, time=t)
         cbind(out, FCdetect=vapply(1:dim(out)[1], function(i){
             getD(out$pValue[i],
                 out$logFoldChange[i],
@@ -108,7 +107,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
             )
         }, c("WT > condition")))
     }, mc.cores = cores))
-    out$name <- rep(dataset$genename, length(times))
+    out$name <- rep(rowData(dataset)$genename, length(times))
     return(out)
 }
 

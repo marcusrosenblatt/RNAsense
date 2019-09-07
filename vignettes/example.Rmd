@@ -18,6 +18,7 @@ library(ggplot2)
 library(parallel)
 library(NBPSeq)
 library(qvalue)
+library(SummarizedExperiment)
 ```
 
 ```{r read data}
@@ -29,12 +30,12 @@ mydata <- read.csv("zv9_Refseq_WT_MZsox.csv", sep="\t")
 # mydata is data in standard format
 thCount <- 100
 nrcores <- 4
-genenames <- mydata$genename
 
-vec2Keep <- which(vapply(1:dim(mydata)[1],function(i) !Reduce("&",mydata[i,3:dim(mydata)[2]]<thCount), c(TRUE)))
+mydata <- SummarizedExperiment(assays=list(mydata=as.matrix(mydata[,-c(1,2)])), rowData = DataFrame(name=mydata[,1], genename=mydata[,2]), colData = DataFrame(condition=do.call(rbind,strsplit(colnames(mydata)[-c(1,2)], "_"))[,1], time=do.call(rbind,strsplit(colnames(mydata)[-c(1,2)], "_"))[,2], replicate=do.call(rbind,strsplit(colnames(mydata)[-c(1,2)], "_"))[,3]))
+
+vec2Keep <- which(vapply(1:dim(mydata)[1],function(i) !Reduce("&",assays(mydata)[[1]][i,]<thCount), c(TRUE)))
 mydata <- mydata[vec2Keep,]
-genenames <- genenames[vec2Keep]
-times <- sort(unique(as.numeric(do.call(rbind,strsplit(names(mydata)[-c(1,2)], "_"))[,2])))
+times <- unique(sort(as.numeric(colData(mydata)$time)))
 
 # apply fold change detection
 resultFC <- RNAsense:::getFC(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = nrcores, mytimes = times)
@@ -43,7 +44,8 @@ resultFC <- RNAsense:::getFC(dataset = mydata, myanalyzeConditions = analyzeCond
 ggplot(subset(resultFC, FCdetect!="none"), aes(x=logFoldChange, y=-log10(pValue), color=FCdetect)) + xlab("log2(Fold Change)") + geom_point(shape=20)
 
 # apply switch detection
-resultSwitch <- RNAsense:::getSwitch(dataset = mydata, cores = nrcores)
+resultSwitch <- RNAsense:::getSwitch(dataset = mydata, experimentStepDetection = "WT", cores = nrcores, mytimes = times)
+
 # collect results
 resultCombined <- RNAsense:::combineResults(resultSwitch, resultFC)
 
