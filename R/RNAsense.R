@@ -1,5 +1,10 @@
-#' Detect switching genes
-#'
+#' @import ggplot2
+#' @import parallel
+#' @import NBPSeq
+#' @import qvalue
+#' @import SummarizedExperiment
+
+#' @title Detect switching genes
 #' @description For each gene, time-resolved RNA-seq measurements are analyzed for occurence of switches (up or down)
 #'
 #' @param dataset data.frame, rows correspond to different genes, first column contains gene identifiers, second column contains the gene name, columns 3 to n contain the RNAseq count data, column names should start with the condition identifier (e.g. "WT") followed by the time separated by "_"
@@ -40,8 +45,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
     }, mc.cores = cores))
 }
 
-#' Detect fold changes
-#'
+#' @title Detect fold changes
 #' @description For each gene and for each time point, RNA-seq count data is analyzed for fold changes between two experimental conditions. This functions bases on functions from the R package NBPSeq package for fold change analysis
 #'
 #' @param dataset data.frame, rows correspond to different genes, first column contains gene identifiers, second column contains the gene name, columns 3 to n contain the RNAseq count data, column names should start with the condition identifier (e.g. "WT") followed by the time separated by "_"
@@ -111,8 +115,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
     return(out)
 }
 
-#' Combine results
-#'
+#' @title Combine results
 #' @description Results of switch and fold change analysis are collected in one data.frame
 #'
 #' @param myresultSwitch data.frame, output of getSwitch
@@ -141,8 +144,7 @@ combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC)
     return(cbind(resultSwitch, temp))
 }
 
-#' plot SSGS gene classes
-#'
+#' @title plot SSGS gene classes
 #' @description Genes are sorted into groups with respect to switch time and time point of fold change detection. For each group, results of wild type and knockdown-condition are compared by means of fisher's exact test to show whether the knocked down gene enhances or suppresses the respective gene group.
 #'
 #' @param myresultCombined data.frame, output of combineResults
@@ -219,8 +221,7 @@ plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanaly
     return(P)
 }
 
-#' Output gene tables
-#'
+#' @title Output gene tables
 #' @description Output information on switching genes (up/down) in tabular format (gene identifier/gene name) are created as csv file and written to the current working directory
 #'
 #' @param myresultCombined data.frame, output of combineResults

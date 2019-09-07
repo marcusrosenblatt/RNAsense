@@ -29,7 +29,7 @@ ini <- TRUE
 mydata <- read.csv("zv9_Refseq_WT_MZsox.csv", sep="\t")
 # mydata is data in standard format
 thCount <- 100
-nrcores <- 4
+nrcores <- 8
 
 mydata <- SummarizedExperiment(assays=list(mydata=as.matrix(mydata[,-c(1,2)])), rowData = DataFrame(name=mydata[,1], genename=mydata[,2]), colData = DataFrame(condition=do.call(rbind,strsplit(colnames(mydata)[-c(1,2)], "_"))[,1], time=do.call(rbind,strsplit(colnames(mydata)[-c(1,2)], "_"))[,2], replicate=do.call(rbind,strsplit(colnames(mydata)[-c(1,2)], "_"))[,3]))
 
