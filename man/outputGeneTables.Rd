@@ -7,9 +7,9 @@
 outputGeneTables(myresultCombined = resultCombined, mytimes = times)
 }
 \arguments{
-\item{myresultCombined}{data.frame, output of combineResults}
+\item{myresultCombined}{data.frame, output of \link{combineResults}}
 
-\item{mytimes}{numeric vector, the measurement times}
+\item{mytimes}{Numeric vector, Time points of the time-resolved RNA-seq data}
 }
 \value{
 current working directory

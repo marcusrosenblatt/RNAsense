@@ -8,9 +8,9 @@ plotSSGS(myresultCombined = resultCombined, mytimes = times,
   myanalyzeConditions = analyzeConditions)
 }
 \arguments{
-\item{myresultCombined}{data.frame, output of combineResults}
+\item{myresultCombined}{data.frame, output of \link{combineResults}}
 
-\item{mytimes}{numeric vector, the measurement times}
+\item{mytimes}{Numeric vector, Time points of the time-resolved RNA-seq data}
 
 \item{myanalyzeConditions}{character vector, the conditions that were analyzed}
 }

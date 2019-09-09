@@ -7,9 +7,9 @@
 combineResults(myresultSwitch = resultSwitch, myresultFC = resultFC)
 }
 \arguments{
-\item{myresultSwitch}{data.frame, output of getSwitch}
+\item{myresultSwitch}{data.frame, output of \link{getSwitch}}
 
-\item{myresultFC}{data.frame, output of getFC}
+\item{myresultFC}{data.frame, output of \link{getFC}}
 }
 \value{
 Data.frame containing information on switch and fold change detection for each gene

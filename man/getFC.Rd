@@ -8,7 +8,7 @@ getFC(dataset = mydata, myanalyzeConditions = analyzeConditions,
   cores = 1, mytimes = times)
 }
 \arguments{
-\item{dataset}{data.frame, rows correspond to different genes, first column contains gene identifiers, second column contains the gene name, columns 3 to n contain the RNAseq count data, column names should start with the condition identifier (e.g. "WT") followed by the time separated by "_"}
+\item{dataset}{Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link{DataFrame} with columns name (geneID) and genename (the gene names), as colData provide a \link{DataFrame} with columns condition, time and repliacte}
 
 \item{myanalyzeConditions}{Character vector, Name of experimental conditions}
 

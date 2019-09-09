@@ -8,13 +8,15 @@ getSwitch(dataset = mydata, experimentStepDetection = "WT",
   pValueSwitch = 0.05, cores = 1, mytimes = times)
 }
 \arguments{
-\item{dataset}{data.frame, rows correspond to different genes, first column contains gene identifiers, second column contains the gene name, columns 3 to n contain the RNAseq count data, column names should start with the condition identifier (e.g. "WT") followed by the time separated by "_"}
+\item{dataset}{Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link{DataFrame} with columns name (geneID) and genename (the gene names), as colData provide a \link{DataFrame} with columns condition, time and repliacte}
 
 \item{experimentStepDetection}{Character, Name of condition for which switch detection is performed}
 
 \item{pValueSwitch}{Numeric, A threshold for counting cells as being invaded or not. When cells move towards negative z-direction, threshold should be negative.}
 
 \item{cores}{Numeric, Number of cores for parallelization, default 1 for no parallelization}
+
+\item{mytimes}{Numeric vector, Time points of the time-resolved RNA-seq data}
 }
 \value{
 Data.frame containing gene names and results of switch detection, information about switch time point and direction
