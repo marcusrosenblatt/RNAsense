@@ -1,8 +1,6 @@
 ---
 title: "Vignette for RNAsense package"
 output: rmarkdown::html_vignette
-fig_width: 8 
-fig_height: 6
 vignette: >
   %\VignetteIndexEntry{Put the title of your vignette here}
   %\VignetteEngine{knitr::rmarkdown}
@@ -13,12 +11,14 @@ vignette: >
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r load packages, echo = FALSE}
+```{r load packages, echo = FALSE, message=FALSE}
 library(ggplot2)
 library(parallel)
 library(NBPSeq)
 library(qvalue)
 library(SummarizedExperiment)
+fig.widt = 8 
+fig.height = 6
 ```
 
 ```{r initialization}
@@ -26,9 +26,10 @@ startTime <- Sys.time() # get start time
 analyzeConditions <- c("WT", "MZsox")
 thCount <- 100
 nrcores <- 8
+
 ```
 
-```{r analysis}
+```{r analysis, eval=FALSE}
 load("MZsox.RData")
 vec2Keep <- which(vapply(1:dim(mydata)[1],function(i) !Reduce("&",assays(mydata)[[1]][i,]<thCount), c(TRUE)))
 mydata <- mydata[vec2Keep,]
