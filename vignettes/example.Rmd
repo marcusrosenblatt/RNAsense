@@ -1,57 +1,73 @@
 ---
-title: "Vignette for RNAsense package"
+title: "RNAsense"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Put the title of your vignette here}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
+###Introduction
+RNAsense is a tool to facilitate interpretation of time-resolved RNA-seq data. Typically it compares gene expression time curves for two different experimental conditions, e.g. wild-type and mutant. The aim is to provide basic functions to easily create plots of stage-specific gene sets like in Figure 1C of https://www.ncbi.nlm.nih.gov/pubmed/20212526.
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+Following the method of the paper, genes are sorted into different groups in two ways. First, wild-type and mutant condition are compared at each time point to get groups of differentially expressed transcripts that are up- or downregulated in the mutant. This is achieved by the function `getFC` whose usage is described below. Second, the expression profiles of one experimental condition (typically wild-type) are tested for significant growth or decay. Similar to the idea in https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1920252/, a one-step and a zero-step (in fact the mean) function are fitted to the time-resolved data and compared by means of likelihood-ratio test. Thus, genes are sorted into non-overlapping groups by the time point of switch up or down. This step is achieved by the function `getStep`. 
 
+Finally, the function `plotSSGS` analyzes correlations between the outputs of `getFC` and `getStep` by means of Fisher's exact test and plots the result in form of a heat map, with time profiles and differential expression groups at y- and x-axis, respectively.
 ```{r load packages, echo = FALSE, message=FALSE}
 library(ggplot2)
 library(parallel)
 library(NBPSeq)
 library(qvalue)
+library(RNAsense)
 library(SummarizedExperiment)
-fig.widt = 8 
+fig.width = 12 
 fig.height = 6
 ```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+###Step-by-step Tutorial
+First of all, data has to be provided in the right format. We made use of the S4-class `SummarizedExperiment` that gives the possibility to provide additional information for example on covariates for the measurements that themselves are given as a numeric matrix. Here is an example how your data should look like:
+```{r load data, message=TRUE}
+load("MZsox.RData") # load MZsox.RData in variable mydata
+print(mydata)
+```
+`SummarizedExperiment` provides a constructor to easily bring your data into this format. When constructing your object, make sure to provide genenames in the `rowData` argument and information on condition, time point and, if available, replicate identifier, in the `colData` argument.
 
+Next, the conditions that should be analyzed are specified and a threshold is provided which is used to exclude genes with expression levels below this threshold for all conditions. This can be useful, if expression levels are in the range of your detection limit. Since `RNAseq` makes use of the `parallel` package, you may specify a number of cores in order to speed up your computation time.
 ```{r initialization}
-startTime <- Sys.time() # get start time
 analyzeConditions <- c("WT", "MZsox")
 thCount <- 100
 nrcores <- 8
-
+vec2Keep <- which(vapply(1:dim(mydata)[1],function(i) !Reduce("&",assays(mydata)[[1]][i,]<thCount), c(TRUE)))
+mydata <- mydata[vec2Keep,] # threshold is applied
+times <- unique(sort(as.numeric(colData(mydata)$time))) # get measurement times from input data
+```
+After data preparation, fold change detection can be performed. The function `getFC` internally calles functions from the `NBPSeq` package to perform fold change analysis for each gene and at each time point. The result is saved in a `data.frame` with corresponding p-values.
+```{r fc_analysis, message=TRUE, eval=TRUE}
+resultFC <- RNAsense:::getFC(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = nrcores, mytimes = times)
+head(resultFC)
+```
+Note that each gene appears in the data frame as often as the number of time points. The result of the fold change analysis can be visualized as a vulcano plot:
+```{r vulcano, message=FALSE, eval=TRUE}
+ggplot(subset(resultFC, FCdetect!="none"), aes(x=logFoldChange, y=-log10(pValue), color=FCdetect)) + xlab("log2(Fold Change)") + geom_point(shape=20)
 ```
 
-```{r analysis, eval=FALSE}
-load("MZsox.RData")
-vec2Keep <- which(vapply(1:dim(mydata)[1],function(i) !Reduce("&",assays(mydata)[[1]][i,]<thCount), c(TRUE)))
-mydata <- mydata[vec2Keep,]
-times <- unique(sort(as.numeric(colData(mydata)$time)))
-
-# apply fold change detection
-resultFC <- RNAsense:::getFC(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = nrcores, mytimes = times)
-
-# generate and output vulcano plot
-ggplot(subset(resultFC, FCdetect!="none"), aes(x=logFoldChange, y=-log10(pValue), color=FCdetect)) + xlab("log2(Fold Change)") + geom_point(shape=20)
-
-# apply switch detection
+Next, the gene expression profiles are analyzed for switches. A switch appears if the profile shows a statistically significant up- or downregulation at a specific time point. If up- or downregulation is detected at multiple time points, the time point with the best likelihood value (for the one-step model) is chosen. The result is saved in a `data.frame` with information on whether a switch has been detected, at which time point and with which p-value based on the likelihood ratio test.
+```{r switch_analysis, message=TRUE, eval=TRUE}
 resultSwitch <- RNAsense:::getSwitch(dataset = mydata, experimentStepDetection = "WT", cores = nrcores, mytimes = times)
-
-# collect results
+head(resultSwitch)
+```
+After fold change and switch analysis have been performed, results shall be collected in one and the same data.frame using the `combineResults` function. This function basically prepares the results to be handed over to `plotSSGS`.
+```{r combination, message=TRUE, eval=TRUE}
 resultCombined <- RNAsense:::combineResults(resultSwitch, resultFC)
+head(resultCombined)
+```
+Finally, the `plotSSGS` function performs Fisher's exact test for each combination of fold change time point and switch time point. Results are plotted as a heat map highlighting combinations with a high significance.
+```{r plot, message=FALSE, eval=TRUE}
+RNAsense:::plotSSGS(resultCombined, times[-length(times)])
+```
 
-RNAsense:::plotSSGS(resultCombined, c(2.5,3,3.5,4,4.5,5,5.5))
-
-#Output gene switch tables
-#RNAsense:::outputGeneTables(resultCombined)
-
-endTime <- Sys.time() # get end time
-cat(paste0("Finished with Running Time: ", round(as.numeric(as.difftime(endTime-startTime, units = "mins")), digits = 2), " minutes")) 
+In order to document the result of the analysis, the function `outputGeneTables` provides a possibility to automatically ouput switch and fold change information into csv files.
+```{r output, message=TRUE, eval=FALSE}
+RNAsense:::outputGeneTables(resultCombined)
 ```
