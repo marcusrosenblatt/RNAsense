@@ -127,7 +127,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 
 combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC){
-    # auxiliary function getFCupdown
+    ## auxiliary function getFCupdown
     getFCupdown <- function(gene, myresultFC = resultFC){
         gene <- factor(gene, levels=levels(myresultFC$name))
         sub <- subset(myresultFC, name==gene)
