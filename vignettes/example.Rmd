@@ -38,6 +38,7 @@ Next, the conditions that should be analyzed are specified and a threshold is pr
 analyzeConditions <- c("WT", "MZsox")
 thCount <- 100
 nrcores <- 8
+if(Sys.info()[[1]]=="Windows"){nrcores <- 1} # use parallelization only on Linux and Mac
 vec2Keep <- which(vapply(1:dim(mydata)[1],function(i) !Reduce("&",assays(mydata)[[1]][i,]<thCount), c(TRUE)))
 mydata <- mydata[vec2Keep,] # threshold is applied
 times <- unique(sort(as.numeric(colData(mydata)$time))) # get measurement times from input data
