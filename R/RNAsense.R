@@ -7,7 +7,7 @@
 #' @title Detect switching genes
 #' @description For each gene, time-resolved RNA-seq measurements are analyzed for occurence of switches (up or down)
 #'
-#' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \code{\link[S4Vectors]{DataFrame}} with columns name (geneID) and genename (the gene names), as colData provide a \code{\link[S4Vectors]{DataFrame}} with columns condition, time and replicate
+#' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns name (geneID) and genename (the gene names), as colData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns condition, time and replicate
 #' @param experimentStepDetection Character, Name of condition for which switch detection is performed
 #' @param pValueSwitch Numeric, A threshold for counting cells as being invaded or not. When cells move towards negative z-direction, threshold should be negative.
 #' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
@@ -49,7 +49,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
 #' @title Detect fold changes
 #' @description For each gene and for each time point, RNA-seq count data is analyzed for fold changes between two experimental conditions. This functions bases on functions from the R package NBPSeq package for fold change analysis
 #'
-#' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \code{\link[S4Vectors]{DataFrame}} with columns name (geneID) and genename (the gene names), as colData provide a \code{\link[S4Vectors]{DataFrame}} with columns condition, time and replicate
+#' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns name (geneID) and genename (the gene names), as colData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns condition, time and replicate
 #' @param myanalyzeConditions Character vector, Name of experimental conditions
 #' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
 #' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data

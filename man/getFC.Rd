@@ -8,7 +8,7 @@ getFC(dataset = mydata, myanalyzeConditions = analyzeConditions,
   cores = 1, mytimes = times)
 }
 \arguments{
-\item{dataset}{Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \code{\link[S4Vectors]{DataFrame}} with columns name (geneID) and genename (the gene names), as colData provide a \code{\link[S4Vectors]{DataFrame}} with columns condition, time and replicate}
+\item{dataset}{Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \code{\link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()}} with columns name (geneID) and genename (the gene names), as colData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns condition, time and replicate}
 
 \item{myanalyzeConditions}{Character vector, Name of experimental conditions}
 
