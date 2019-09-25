@@ -1,7 +1,7 @@
 Package: RNAsense
 Type: Package
 Title: Analysis of Time-Resolved RNA-Seq Data
-Version: 0.99.3
+Version: 0.99.4
 Authors@R: c(person("Marcus", "Rosenblatt", email = "marcus.rosenblatt@gmail.com", role = "cre"),
     person("Meijang", "Gao", role = "aut"),
     person("Helge", "Hass", role = "aut"),
