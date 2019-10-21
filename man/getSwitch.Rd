@@ -8,7 +8,7 @@ getSwitch(dataset = mydata, experimentStepDetection = "WT",
   pValueSwitch = 0.05, cores = 1, mytimes = times)
 }
 \arguments{
-\item{dataset}{Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns name (geneID) and genename (the gene names), as colData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns condition, time and replicate}
+\item{dataset}{Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link{DataFrame} with columns name (geneID) and genename (the gene names), as colData provide a \link{DataFrame} with columns condition, time and replicate}
 
 \item{experimentStepDetection}{Character, Name of condition for which switch detection is performed}
 

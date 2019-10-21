@@ -1,13 +1,15 @@
 #' @import ggplot2
 #' @import parallel
-#' @import NBPSeq
+#' @importFrom NBPSeq estimate.norm.factors prepare.nbp estimate.disp exact.nb.test
 #' @import qvalue
 #' @import SummarizedExperiment
+#' @importFrom stats fisher.test pchisq time var
+#' @importFrom utils write.table data
 
 #' @title Detect switching genes
 #' @description For each gene, time-resolved RNA-seq measurements are analyzed for occurence of switches (up or down)
 #'
-#' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns name (geneID) and genename (the gene names), as colData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns condition, time and replicate
+#' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link{DataFrame} with columns name (geneID) and genename (the gene names), as colData provide a \link{DataFrame} with columns condition, time and replicate
 #' @param experimentStepDetection Character, Name of condition for which switch detection is performed
 #' @param pValueSwitch Numeric, A threshold for counting cells as being invaded or not. When cells move towards negative z-direction, threshold should be negative.
 #' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
@@ -16,7 +18,7 @@
 #' @return Data.frame containing gene names and results of switch detection, information about switch time point and direction
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
-
+#' @export
 getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSwitch = 0.05, cores = 1, mytimes=times){
     #data <- mydata[,c(1,2,which(grepl(experimentStepDetection, colnames(dataset))))]
     data <- dataset[,colData(dataset)$condition==experimentStepDetection]
@@ -49,7 +51,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
 #' @title Detect fold changes
 #' @description For each gene and for each time point, RNA-seq count data is analyzed for fold changes between two experimental conditions. This functions bases on functions from the R package NBPSeq package for fold change analysis
 #'
-#' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns name (geneID) and genename (the gene names), as colData provide a \link[S4Vectors:DataFrame-class]{S4Vectors::DataFrame()} with columns condition, time and replicate
+#' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link{DataFrame} with columns name (geneID) and genename (the gene names), as colData provide a \link{DataFrame} with columns condition, time and replicate
 #' @param myanalyzeConditions Character vector, Name of experimental conditions
 #' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
 #' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data
@@ -57,7 +59,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
 #' @return Data.frame containing gene names, log fold change and p-values calculated from NBPSeq, each gene appears as often as available time points
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
-
+#' @export
 getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = 1, mytimes = times){
     # auxiliary function getD
     getD <- function(value, FC, thFoldChange=NA, pValueFC=0.05){
@@ -125,7 +127,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
 #' @return Data.frame containing information on switch and fold change detection for each gene
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
-
+#' @export
 combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC){
     ## auxiliary function getFCupdown
     getFCupdown <- function(gene, myresultFC = resultFC){
@@ -155,7 +157,7 @@ combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC)
 #' @return SSGS color plot in ggplot format
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
-
+#' @export
 plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanalyzeConditions = analyzeConditions){
     # auxiliary function for application of fisher test
     getFT <- function(myresult=result, myswitch="up",switchtime=3, xaxis="2.5hpf", identifier="FCdown"){
@@ -231,7 +233,7 @@ plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanaly
 #' @return current working directory
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
-
+#' @export
 outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times){
     genetableUp <- c()
     genetableDown <- c()
