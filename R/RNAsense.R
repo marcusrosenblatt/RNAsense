@@ -37,8 +37,11 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
             out <- cbind(do.call(rbind, lapply(sort(unique(temp$time))[-length(sort(unique(temp$time)))], function(t){
                 temp1 <- subset(temp, time <= t)$value
                 temp2 <- subset(temp, time > t)$value
-                data.frame(name=rowData(mydatasub)$name[i], genename=rowData(mydatasub)$genename[i], timepoint=t, value=var(temp1)*(length(temp1)-1) + var(temp2)*(length(temp2)-1))
-            })), var=var(temp$value)*(length(temp$value)-1))
+                data.frame(name=rowData(mydatasub)$name[i],
+                           genename=rowData(mydatasub)$genename[i],
+                           timepoint=t,
+                           value=var(temp1)*(length(temp1)-1)/length(temp1) + var(temp2)*(length(temp2)-1)/length(temp2))
+            })), var=var(temp$value)*(length(temp$value)-1)/length(temp$value))
             out <- out[which(out$value==min(out$value))[1],]
             pValue <- NA
             if(out$value==0){out <- cbind(out, switch="none"); out$timepoint = NA} else {
