@@ -4,12 +4,15 @@
 \alias{combineResults}
 \title{Combine results}
 \usage{
-combineResults(myresultSwitch = resultSwitch, myresultFC = resultFC)
+combineResults(myresultSwitch = resultSwitch, myresultFC = resultFC,
+  nrcores = 1)
 }
 \arguments{
 \item{myresultSwitch}{data.frame, output of \link{getSwitch}}
 
 \item{myresultFC}{data.frame, output of \link{getFC}}
+
+\item{nrcores}{Numeric, Number of cores for parallelization, default 1 for no parallelization}
 }
 \value{
 Data.frame containing information on switch and fold change detection for each gene
@@ -19,7 +22,7 @@ Results of switch and fold change analysis are collected in one data.frame
 }
 \examples{
 data(MZsox)
-mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
 resultFC <- getFC(dataset = mydata,
 myanalyzeConditions = c("WT", "MZsox"),
 cores = 1,

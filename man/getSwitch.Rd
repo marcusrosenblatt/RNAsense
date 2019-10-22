@@ -26,7 +26,7 @@ For each gene, time-resolved RNA-seq measurements are analyzed for occurence of 
 }
 \examples{
 data(MZsox)
-mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
 resultSwitch <- getSwitch(dataset = mydata,
 experimentStepDetection = "WT",
 cores = 1,

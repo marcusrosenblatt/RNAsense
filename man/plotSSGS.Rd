@@ -23,7 +23,7 @@ Genes are sorted into groups with respect to switch time and time point of fold 
 \examples{
 library(ggplot2)
 data(MZsox)
-mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
 resultFC <- getFC(dataset = mydata,
 myanalyzeConditions = c("WT", "MZsox"),
 cores = 1,
@@ -33,7 +33,7 @@ experimentStepDetection = "WT",
 cores = 1,
 mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
 resultCombined <- combineResults(resultSwitch, resultFC)
-plotSSGS(myresultCombiend = resultCombined,
+plotSSGS(myresultCombined = resultCombined,
 mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6),
 myanalyzeConditions = c("WT", "MZsox"))
 }

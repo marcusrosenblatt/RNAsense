@@ -24,7 +24,7 @@ For each gene and for each time point, RNA-seq count data is analyzed for fold c
 }
 \examples{
 data(MZsox)
-mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
 resultFC <- getFC(dataset = mydata,
 myanalyzeConditions = c("WT", "MZsox"),
 cores = 1,

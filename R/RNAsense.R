@@ -21,7 +21,7 @@
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' @examples
 #' data(MZsox)
-#' mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
 #' resultSwitch <- getSwitch(dataset = mydata,
 #' experimentStepDetection = "WT",
 #' cores = 1,
@@ -68,7 +68,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' @examples
 #' data(MZsox)
-#' mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
 #' resultFC <- getFC(dataset = mydata,
 #' myanalyzeConditions = c("WT", "MZsox"),
 #' cores = 1,
@@ -108,7 +108,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
         norm.factors = estimate.norm.factors(data);
 
         ## Prepare an NBP object, adjust the library sizes by thinning the counts.
-        obj = prepare.nbp(data, grp.ids, lib.size=colSums(data), norm.factors=norm.factors, print.level = 0);
+        obj = prepare.nbp(data, grp.ids, lib.sizes=colSums(data), norm.factors=norm.factors, print.level = 0);
 
         ## Fit a dispersion model (NBQ by default)
         obj = estimate.disp(obj, print.level = 0);
@@ -129,7 +129,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
             )
         }, c("WT > condition")))
     }, mc.cores = cores))
-    out$name <- rep(rowData(dataset)$genename, length(times))
+    out$name <- rep(rowData(dataset)$genename, length(mytimes))
     return(out)
 }
 
@@ -138,13 +138,14 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
 #'
 #' @param myresultSwitch data.frame, output of \link{getSwitch}
 #' @param myresultFC data.frame, output of \link{getFC}
+#' @param nrcores Numeric, Number of cores for parallelization, default 1 for no parallelization
 #'
 #' @return Data.frame containing information on switch and fold change detection for each gene
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' @examples
 #' data(MZsox)
-#' mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
 #' resultFC <- getFC(dataset = mydata,
 #' myanalyzeConditions = c("WT", "MZsox"),
 #' cores = 1,
@@ -155,7 +156,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
 #' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
 #' combineResults(resultSwitch, resultFC)
 #' @export
-combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC){
+combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC, nrcores = 1){
     ## auxiliary function getFCupdown
     getFCupdown <- function(gene, myresultFC = resultFC){
         gene <- factor(gene, levels=levels(myresultFC$name))
@@ -187,7 +188,7 @@ combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC)
 #' @examples
 #' library(ggplot2)
 #' data(MZsox)
-#' mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
 #' resultFC <- getFC(dataset = mydata,
 #' myanalyzeConditions = c("WT", "MZsox"),
 #' cores = 1,
@@ -197,7 +198,7 @@ combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC)
 #' cores = 1,
 #' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
 #' resultCombined <- combineResults(resultSwitch, resultFC)
-#' plotSSGS(myresultCombiend = resultCombined,
+#' plotSSGS(myresultCombined = resultCombined,
 #' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6),
 #' myanalyzeConditions = c("WT", "MZsox"))
 #' @export
@@ -289,7 +290,6 @@ outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times,
     for (t in mytimes){
         for(identifier in c("FCdown", "FCup")){
             for(x in paste0(format(seq(2.5,6,by=0.5), nsmall = 1),"hpf")){
-                for(exp in myanalyzeConditions){
                     if(identifier=="FCdown"){
                         genesUp <- as.character(unique(subset(myresultCombined, switch=="up" & timepoint==t & grepl(x, FCdown))$name))
                         genesUp <- c(genesUp, rep("",3000-length(genesUp)))
@@ -320,7 +320,6 @@ outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times,
                         geneNamesDown <- c(geneNamesDown, rep("",3000-length(geneNamesDown)))
                         geneNametableDown <- cbind(geneNametableDown,c(paste0("Switch Down at ", format(t, nsmall=1)),paste0(myanalyzeConditions[2]," > ",myanalyzeConditions[1]),x,geneNamesDown))
                     }
-                }
             }
         }
     }
