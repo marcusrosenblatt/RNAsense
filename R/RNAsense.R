@@ -18,13 +18,20 @@
 #' @return Data.frame containing gene names and results of switch detection, information about switch time point and direction
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
+#' @examples
+#' data(MZsox)
+#' mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+#' resultSwitch <- getSwitch(dataset = mydata,
+#' experimentStepDetection = "WT",
+#' cores = 1,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
 #' @export
 getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSwitch = 0.05, cores = 1, mytimes=times){
-    stopifnot(class(dataset)=="SummarizedExperiment")
+    stopifnot(is(dataset, "SummarizedExperiment"))
     data <- dataset[,colData(dataset)$condition==experimentStepDetection]
-    do.call(rbind, mclapply(1:ceiling(nrow(data)/500), function(index){
+    do.call(rbind, mclapply(seq(1,ceiling(nrow(data)/500)), function(index){
         mydatasub <- data[seq((index-1)*500+1,min(index*500,nrow(data))),]
-        do.call(rbind, lapply(1:nrow(mydatasub), function(i){
+        do.call(rbind, lapply(seq(1,nrow(mydatasub)), function(i){
             temp <- data.frame(value = assays(mydatasub)[[1]][i,], time = mytimes)
             out <- cbind(do.call(rbind, lapply(sort(unique(temp$time))[-length(sort(unique(temp$time)))], function(t){
                 temp1 <- subset(temp, time <= t)$value
@@ -58,9 +65,16 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
 #' @return Data.frame containing gene names, log fold change and p-values calculated from NBPSeq, each gene appears as often as available time points
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
+#' @examples
+#' data(MZsox)
+#' mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+#' resultFC <- getFC(dataset = mydata,
+#' myanalyzeConditions = c("WT", "MZsox"),
+#' cores = 1,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
 #' @export
 getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = 1, mytimes = times){
-    stopifnot(class(dataset)=="SummarizedExperiment")
+    stopifnot(is(dataset, "SummarizedExperiment"))
     # auxiliary function getD
     getD <- function(value, FC, thFoldChange=NA, pValueFC=0.05){
         if(is.na(value) | is.na(FC)){return("none")} else {
@@ -81,7 +95,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
                     else return(paste0(myanalyzeConditions[1], "=", myanalyzeConditions[2]))
         }
 
-      }
+        }
     }
     out <- do.call(rbind, mclapply(mytimes, function(t){
         data <- assays(dataset[,colData(dataset)$time==t])[[1]]
@@ -106,7 +120,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
 
         # ## Output results
         out <- data.frame(name=rowData(dataset)$genename, logFoldChange = obj$log.fc, pValue = obj$p.values, time=t)
-        cbind(out, FCdetect=vapply(1:dim(out)[1], function(i){
+        cbind(out, FCdetect=vapply(seq(1,dim(out)[1]), function(i){
             getD(out$pValue[i],
                 out$logFoldChange[i],
                 thFoldChange = 2,  ## ignored, if NA
@@ -127,6 +141,18 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
 #' @return Data.frame containing information on switch and fold change detection for each gene
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
+#' @examples
+#' data(MZsox)
+#' mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+#' resultFC <- getFC(dataset = mydata,
+#' myanalyzeConditions = c("WT", "MZsox"),
+#' cores = 1,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+#' resultSwitch <- getSwitch(dataset = mydata,
+#' experimentStepDetection = "WT",
+#' cores = 1,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+#' combineResults(resultSwitch, resultFC)
 #' @export
 combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC){
     ## auxiliary function getFCupdown
@@ -157,28 +183,44 @@ combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC)
 #' @return SSGS color plot in ggplot format
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
+#' @examples
+#' library(ggplot2)
+#' data(MZsox)
+#' mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+#' resultFC <- getFC(dataset = mydata,
+#' myanalyzeConditions = c("WT", "MZsox"),
+#' cores = 1,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+#' resultSwitch <- getSwitch(dataset = mydata,
+#' experimentStepDetection = "WT",
+#' cores = 1,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+#' resultCombined <- combineResults(resultSwitch, resultFC)
+#' plotSSGS(myresultCombiend = resultCombined,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6),
+#' myanalyzeConditions = c("WT", "MZsox"))
 #' @export
 plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanalyzeConditions = analyzeConditions){
     # auxiliary function for application of fisher test
     getFT <- function(myresult=result, myswitch="up",switchtime=3, xaxis="2.5hpf", identifier="FCdown"){
         if(identifier == "FCdown"){
             a=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
-                           grepl(xaxis, FCdown)))[1]
+                             grepl(xaxis, FCdown)))[1]
             b=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
-                           grepl(xaxis, FCdown)))[1]
+                             grepl(xaxis, FCdown)))[1]
             c=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
-                           !grepl(xaxis, FCdown)))[1]
+                             !grepl(xaxis, FCdown)))[1]
             d=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
-                           !grepl(xaxis, FCdown)))[1]
+                             !grepl(xaxis, FCdown)))[1]
         } else {
             a=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
-                           grepl(xaxis, FCup)))[1]
+                             grepl(xaxis, FCup)))[1]
             b=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
-                           grepl(xaxis, FCup)))[1]
+                             grepl(xaxis, FCup)))[1]
             c=dim(subset(myresult, switch==myswitch & timepoint==switchtime &
-                           !grepl(xaxis, FCup)))[1]
+                             !grepl(xaxis, FCup)))[1]
             d=dim(subset(myresult, !(switch==myswitch & timepoint==switchtime) &
-                           !grepl(xaxis, FCup)))[1]
+                             !grepl(xaxis, FCup)))[1]
         }
 
         pvalue_suppress <- fisher.test(rbind(c(a,b), c(c,d)), alternative="less")$p.value

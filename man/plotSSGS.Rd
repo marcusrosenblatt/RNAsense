@@ -20,6 +20,18 @@ SSGS color plot in ggplot format
 \description{
 Genes are sorted into groups with respect to switch time and time point of fold change detection. For each group, results of wild type and knockdown-condition are compared by means of fisher's exact test to show whether the knocked down gene enhances or suppresses the respective gene group.
 }
+\examples{
+library(ggplot2)
+times <- seq(0, 2*pi, 0.1)
+values <- sin(times)
+data <- data.frame(
+   time = times, 
+   value = c(values, 1.2*values, 1.4*values, 1.6*values), 
+   group = rep(c("C1", "C2", "C3", "C4"), each = length(times))
+)
+qplot(time, value, data = data, color = group, geom = "line") + 
+   theme_dMod() + scale_color_dMod()
+}
 \author{
 Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
 }

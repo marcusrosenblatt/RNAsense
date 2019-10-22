@@ -17,7 +17,7 @@ outputGeneTables(myresultCombined = resultCombined, mytimes = times,
 \item{mywd}{character, working directory to which results will be written, if NULL the current working directory is used}
 }
 \value{
-current working directory
+Working directory where results have been written to
 }
 \description{
 Output information on switching genes (up/down) in tabular format (gene identifier/gene name) are created as .txt file and written to the specified working directory.

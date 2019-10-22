@@ -1,7 +1,7 @@
 Package: RNAsense
 Type: Package
 Title: Analysis of Time-Resolved RNA-Seq Data
-Version: 0.99.6
+Version: 0.99.7
 Authors@R: c(person("Marcus", "Rosenblatt", email = "marcus.rosenblatt@gmail.com", role = "cre"),
     person("Gao", "Meijang", role = "aut"),
     person("Helge", "Hass", role = "aut"),
@@ -13,6 +13,6 @@ LazyData: false
 RoxygenNote: 6.1.1
 BugReports: https://github.com/marcusrosenblatt/RNAsense
 biocViews: RNASeq, GeneExpression, DifferentialExpression
-Imports: ggplot2, parallel, NBPSeq, qvalue, SummarizedExperiment
+Imports: ggplot2, parallel, NBPSeq, qvalue, SummarizedExperiment, stats, utils
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
