@@ -20,11 +20,10 @@
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' @export
 getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSwitch = 0.05, cores = 1, mytimes=times){
-    #data <- mydata[,c(1,2,which(grepl(experimentStepDetection, colnames(dataset))))]
+    stopifnot(class(dataset)=="SummarizedExperiment")
     data <- dataset[,colData(dataset)$condition==experimentStepDetection]
     do.call(rbind, mclapply(1:ceiling(nrow(data)/500), function(index){
         mydatasub <- data[seq((index-1)*500+1,min(index*500,nrow(data))),]
-        #mydatasub <- subset(data, name%in%unique(data$name)[seq((index-1)*500+1,min(index*500,nrow(data)))])
         do.call(rbind, lapply(1:nrow(mydatasub), function(i){
             temp <- data.frame(value = assays(mydatasub)[[1]][i,], time = mytimes)
             out <- cbind(do.call(rbind, lapply(sort(unique(temp$time))[-length(sort(unique(temp$time)))], function(t){
@@ -61,6 +60,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' @export
 getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = 1, mytimes = times){
+    stopifnot(class(dataset)=="SummarizedExperiment")
     # auxiliary function getD
     getD <- function(value, FC, thFoldChange=NA, pValueFC=0.05){
         if(is.na(value) | is.na(FC)){return("none")} else {
@@ -225,16 +225,20 @@ plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanaly
 }
 
 #' @title Output gene tables
-#' @description Output information on switching genes (up/down) in tabular format (gene identifier/gene name) are created as csv file and written to the current working directory
+#' @description Output information on switching genes (up/down) in tabular format (gene identifier/gene name) are created as .txt file and written to the specified working directory.
+#' Two of the generated files (geneNamelist) contain gene lists with gene name for genes that switch up and down respectively. The other two (genelist) contain exactly the same output but with gene identifiers instead of gene names depending on what you prefer for further analysis. Each column corresponds to a combination of switch time point, fold change direction and time point of fold change. All genes for which fold change was detected at the indicated time point and switch was detected at the indicated time point are listed in the corresponding column. Note that a single gene may appear multiple times. The fifth .txt file (switchList) contains information on detected switches in a different format. The output consists of table with six columns with each row corresponding to one gene. Detected switches are indicated by 1, -1 and 0 for switch up, switch down and no switch, respectively. If a switch was detected, the column timepoint indicated the corresponding time point of switch detection.
 #'
 #' @param myresultCombined data.frame, output of \link{combineResults}
 #' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data
+#' @param myanalyzeConditions character vector, the conditions that were analyzed
+#' @param mywd character, working directory to which results will be written, if NULL the current working directory is used
 #'
-#' @return current working directory
+#' @return Working directory where results have been written to
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' @export
-outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times){
+outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times, myanalyzeConditions = analyzeConditions, mywd = NULL){
+    if(is.null(mywd)) mywd <- getwd()
     genetableUp <- c()
     genetableDown <- c()
     geneNametableUp <- c()
@@ -242,57 +246,57 @@ outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times)
     for (t in mytimes){
         for(identifier in c("FCdown", "FCup")){
             for(x in paste0(format(seq(2.5,6,by=0.5), nsmall = 1),"hpf")){
-                for(exp in analyzeConditions){
+                for(exp in myanalyzeConditions){
                     if(identifier=="FCdown"){
                         genesUp <- as.character(unique(subset(myresultCombined, switch=="up" & timepoint==t & grepl(x, FCdown))$name))
                         genesUp <- c(genesUp, rep("",3000-length(genesUp)))
-                        genetableUp <- cbind(genetableUp,c(paste0("Switch Up at ", format(t, nsmall=1)),paste0(analyzeConditions[1]," > ",analyzeConditions[2]),x,genesUp))
+                        genetableUp <- cbind(genetableUp,c(paste0("Switch Up at ", format(t, nsmall=1)),paste0(myanalyzeConditions[1]," > ",myanalyzeConditions[2]),x,genesUp))
                         geneNamesUp <- as.character(unique(subset(myresultCombined, switch=="up" & timepoint==t & grepl(x, FCdown))$genename))
                         geneNamesUp <- c(geneNamesUp, rep("",3000-length(geneNamesUp)))
-                        geneNametableUp <- cbind(geneNametableUp,c(paste0("Switch Up at ", format(t, nsmall=1)),paste0(analyzeConditions[1]," > ",analyzeConditions[2]),x,geneNamesUp))
+                        geneNametableUp <- cbind(geneNametableUp,c(paste0("Switch Up at ", format(t, nsmall=1)),paste0(myanalyzeConditions[1]," > ",myanalyzeConditions[2]),x,geneNamesUp))
 
                         genesDown <- as.character(unique(subset(myresultCombined, switch=="down" & timepoint==t & grepl(x, FCdown))$name))
                         genesDown <- c(genesDown, rep("",3000-length(genesDown)))
-                        genetableDown <- cbind(genetableDown,c(paste0("Switch Down at ", format(t, nsmall=1)),paste0(analyzeConditions[1]," > ",analyzeConditions[2]),x,genesDown))
+                        genetableDown <- cbind(genetableDown,c(paste0("Switch Down at ", format(t, nsmall=1)),paste0(myanalyzeConditions[1]," > ",myanalyzeConditions[2]),x,genesDown))
                         geneNamesDown <- as.character(unique(subset(myresultCombined, switch=="down" & timepoint==t & grepl(x, FCdown))$genename))
                         geneNamesDown <- c(geneNamesDown, rep("",3000-length(geneNamesDown)))
-                        geneNametableDown <- cbind(geneNametableDown,c(paste0("Switch Down at ", format(t, nsmall=1)),paste0(analyzeConditions[1]," > ",analyzeConditions[2]),x,geneNamesDown))
+                        geneNametableDown <- cbind(geneNametableDown,c(paste0("Switch Down at ", format(t, nsmall=1)),paste0(myanalyzeConditions[1]," > ",myanalyzeConditions[2]),x,geneNamesDown))
                     }
                     if(identifier=="FCup"){
                         genesUp <- as.character(unique(subset(myresultCombined, switch=="up" & timepoint==t & grepl(x, FCup))$name))
                         genesUp <- c(genesUp, rep("",3000-length(genesUp)))
-                        genetableUp <- cbind(genetableUp,c(paste0("Switch Up at ", format(t, nsmall=1)),paste0(analyzeConditions[2]," > ",analyzeConditions[1]),x,genesUp))
+                        genetableUp <- cbind(genetableUp,c(paste0("Switch Up at ", format(t, nsmall=1)),paste0(myanalyzeConditions[2]," > ",myanalyzeConditions[1]),x,genesUp))
                         geneNamesUp <- as.character(unique(subset(myresultCombined, switch=="up" & timepoint==t & grepl(x, FCup))$genename))
                         geneNamesUp <- c(geneNamesUp, rep("",3000-length(geneNamesUp)))
-                        geneNametableUp <- cbind(geneNametableUp,c(paste0("Switch Up at ", format(t, nsmall=1)),paste0(analyzeConditions[2]," > ",analyzeConditions[1]),x,geneNamesUp))
+                        geneNametableUp <- cbind(geneNametableUp,c(paste0("Switch Up at ", format(t, nsmall=1)),paste0(myanalyzeConditions[2]," > ",myanalyzeConditions[1]),x,geneNamesUp))
 
                         genesDown <- as.character(unique(subset(myresultCombined, switch=="down" & timepoint==t & grepl(x, FCup))$name))
                         genesDown <- c(genesDown, rep("",3000-length(genesDown)))
-                        genetableDown <- cbind(genetableDown,c(paste0("Switch Down at ", format(t, nsmall=1)),paste0(analyzeConditions[2]," > ",analyzeConditions[1]),x,genesDown))
+                        genetableDown <- cbind(genetableDown,c(paste0("Switch Down at ", format(t, nsmall=1)),paste0(myanalyzeConditions[2]," > ",myanalyzeConditions[1]),x,genesDown))
                         geneNamesDown <- as.character(unique(subset(myresultCombined, switch=="down" & timepoint==t & grepl(x, FCup))$genename))
                         geneNamesDown <- c(geneNamesDown, rep("",3000-length(geneNamesDown)))
-                        geneNametableDown <- cbind(geneNametableDown,c(paste0("Switch Down at ", format(t, nsmall=1)),paste0(analyzeConditions[2]," > ",analyzeConditions[1]),x,geneNamesDown))
+                        geneNametableDown <- cbind(geneNametableDown,c(paste0("Switch Down at ", format(t, nsmall=1)),paste0(myanalyzeConditions[2]," > ",myanalyzeConditions[1]),x,geneNamesDown))
                     }
                 }
             }
         }
     }
 
-    nametag <- analyzeConditions[2]
+    nametag <- myanalyzeConditions[2]
 
-    write.table(genetableUp, file=paste0("genelist_switchUp_",nametag,".txt"), sep = "\t", row.names=FALSE, col.names = FALSE)
-    write.table(genetableDown, file=paste0("genelist_switchDown_",nametag,".txt"), sep = "\t", row.names=FALSE, col.names = FALSE)
-    write.table(geneNametableUp, file=paste0("geneNamelist_switchUp_",nametag,".txt"), sep = "\t", row.names=FALSE, col.names = FALSE)
-    write.table(geneNametableDown, file=paste0("geneNamelist_switchDown_",nametag,".txt"), sep = "\t", row.names=FALSE, col.names = FALSE)
+    write.table(genetableUp, file=paste0(mywd,"/genelist_switchUp_",nametag,".txt"), sep = "\t", row.names=FALSE, col.names = FALSE)
+    write.table(genetableDown, file=paste0(mywd,"/genelist_switchDown_",nametag,".txt"), sep = "\t", row.names=FALSE, col.names = FALSE)
+    write.table(geneNametableUp, file=paste0(mywd,"/geneNamelist_switchUp_",nametag,".txt"), sep = "\t", row.names=FALSE, col.names = FALSE)
+    write.table(geneNametableDown, file=paste0(mywd,"/geneNamelist_switchDown_",nametag,".txt"), sep = "\t", row.names=FALSE, col.names = FALSE)
 
-    resultOut1 <- subset(myresultCombined[,c("name","genename", "pvalueSwitch", "switch", "timepoint", "experiment")], experiment==analyzeConditions[1])
-    resultOut2 <- subset(myresultCombined[,c("name","genename", "pvalueSwitch", "switch", "timepoint", "experiment")], experiment==analyzeConditions[2])
+    resultOut1 <- subset(myresultCombined[,c("name","genename", "pvalueSwitch", "switch", "timepoint", "experiment")], experiment==myanalyzeConditions[1])
+    resultOut2 <- subset(myresultCombined[,c("name","genename", "pvalueSwitch", "switch", "timepoint", "experiment")], experiment==myanalyzeConditions[2])
     resultOut1$timepoint <- format(resultOut1$timepoint, nsmall = 1)
     resultOut2$timepoint <- format(resultOut2$timepoint, nsmall = 1)
     if(dim(resultOut2)[1] > 0) resultOut <- cbind(resultOut1, resultOut2[,-1]) else resultOut <- resultOut1
     resultOut$switch <- sub("none", "0", resultOut$switch)
     resultOut$switch <- sub("up", "1", resultOut$switch)
     resultOut$switch <- sub("down", "-1", resultOut$switch)
-    write.table(resultOut, file=paste0("switchList_",nametag,".txt"), sep = "\t", row.names=FALSE)
-    return(paste("Results written to", getwd()))
+    write.table(resultOut, file=paste0(mywd,"/switchList_",nametag,".txt"), sep = "\t", row.names=FALSE)
+    return(paste("Results written to", mywd))
 }

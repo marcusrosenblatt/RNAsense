@@ -4,18 +4,24 @@
 \alias{outputGeneTables}
 \title{Output gene tables}
 \usage{
-outputGeneTables(myresultCombined = resultCombined, mytimes = times)
+outputGeneTables(myresultCombined = resultCombined, mytimes = times,
+  myanalyzeConditions = analyzeConditions, mywd = NULL)
 }
 \arguments{
 \item{myresultCombined}{data.frame, output of \link{combineResults}}
 
 \item{mytimes}{Numeric vector, Time points of the time-resolved RNA-seq data}
+
+\item{myanalyzeConditions}{character vector, the conditions that were analyzed}
+
+\item{mywd}{character, working directory to which results will be written, if NULL the current working directory is used}
 }
 \value{
 current working directory
 }
 \description{
-Output information on switching genes (up/down) in tabular format (gene identifier/gene name) are created as csv file and written to the current working directory
+Output information on switching genes (up/down) in tabular format (gene identifier/gene name) are created as .txt file and written to the specified working directory.
+Two of the generated files (geneNamelist) contain gene lists with gene name for genes that switch up and down respectively. The other two (genelist) contain exactly the same output but with gene identifiers instead of gene names depending on what you prefer for further analysis. Each column corresponds to a combination of switch time point, fold change direction and time point of fold change. All genes for which fold change was detected at the indicated time point and switch was detected at the indicated time point are listed in the corresponding column. Note that a single gene may appear multiple times. The fifth .txt file (switchList) contains information on detected switches in a different format. The output consists of table with six columns with each row corresponding to one gene. Detected switches are indicated by 1, -1 and 0 for switch up, switch down and no switch, respectively. If a switch was detected, the column timepoint indicated the corresponding time point of switch detection.
 }
 \author{
 Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}

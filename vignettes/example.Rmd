@@ -1,33 +1,32 @@
 ---
 title: "RNAsense"
-output: rmarkdown::html_vignette
+output: 
+  html_vignette:
+    toc: true
 vignette: >
   %\VignetteIndexEntry{Put the title of your vignette here}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
-###Introduction
+## Introduction
 RNAsense is a tool to facilitate interpretation of time-resolved RNA-seq data. Typically it compares gene expression time curves for two different experimental conditions, e.g. wild-type and mutant. The aim is to provide basic functions to easily create plots of stage-specific gene sets like in Figure 1C of https://www.ncbi.nlm.nih.gov/pubmed/20212526.
 
 Following the method of the paper, genes are sorted into different groups in two ways. First, wild-type and mutant condition are compared at each time point to get groups of differentially expressed transcripts that are up- or downregulated in the mutant. This is achieved by the function `getFC` whose usage is described below. Second, the expression profiles of one experimental condition (typically wild-type) are tested for significant growth or decay. Similar to the idea in https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1920252/, a one-step and a zero-step (in fact the mean) function are fitted to the time-resolved data and compared by means of likelihood-ratio test. Thus, genes are sorted into non-overlapping groups by the time point of switch up or down. This step is achieved by the function `getStep`. 
 
 Finally, the function `plotSSGS` analyzes correlations between the outputs of `getFC` and `getStep` by means of Fisher's exact test and plots the result in form of a heat map, with time profiles and differential expression groups at y- and x-axis, respectively.
-```{r load packages, echo = FALSE, message=FALSE}
-library(ggplot2)
-library(parallel)
-library(NBPSeq)
-library(qvalue)
-library(RNAsense)
-library(SummarizedExperiment)
-fig.width = 12 
-fig.height = 6
-```
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-###Step-by-step Tutorial
+## Installation
+```{r installation, eval=FALSE}
+if(!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("RNAsense")
+```
+## Step-by-step Tutorial
 First of all, data has to be provided in the right format. We made use of the S4-class `SummarizedExperiment` that gives the possibility to provide additional information for example on covariates for the measurements that themselves are given as a numeric matrix. Here is an example how your data should look like:
 ```{r load data, message=TRUE}
+library(RNAsense)
 data("MZsox") # load MZsox.RData in variable mydata
 print(MZsox)
 mydata <- MZsox
@@ -35,42 +34,59 @@ mydata <- MZsox
 `SummarizedExperiment` provides a constructor to easily bring your data into this format. When constructing your object, make sure to provide genenames in the `rowData` argument and information on condition, time point and, if available, replicate identifier, in the `colData` argument.
 
 Next, the conditions that should be analyzed are specified and a threshold is provided which is used to exclude genes with expression levels below this threshold for all conditions. This can be useful, if expression levels are in the range of your detection limit. Since `RNAseq` makes use of the `parallel` package, you may specify a number of cores in order to speed up your computation time.
-```{r initialization}
+```{r initialization, message=FALSE, eval=TRUE}
 analyzeConditions <- c("WT", "MZsox")
 thCount <- 100
 nrcores <- 1
+library(SummarizedExperiment)
 #if(Sys.info()[[1]]=="Windows"){nrcores <- 1} # use parallelization only on Linux and Mac
 mydata <- mydata[seq(1,nrow(mydata), by=4),]
-vec2Keep <- which(vapply(1:dim(mydata)[1],function(i) !Reduce("&",assays(mydata)[[1]][i,]<thCount), c(TRUE)))
+vec2Keep <- which(vapply(1:dim(mydata)[1],function(i)
+  !Reduce("&",assays(mydata)[[1]][i,]<thCount), c(TRUE)))
 mydata <- mydata[vec2Keep,] # threshold is applied
 times <- unique(sort(as.numeric(colData(mydata)$time))) # get measurement times from input data
 ```
 After data preparation, fold change detection can be performed. The function `getFC` internally calles functions from the `NBPSeq` package to perform fold change analysis for each gene and at each time point. The result is saved in a `data.frame` with corresponding p-values.
 ```{r fc_analysis, message=TRUE, eval=TRUE}
-resultFC <- getFC(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = nrcores, mytimes = times)
+resultFC <- getFC(dataset = mydata, 
+                  myanalyzeConditions = analyzeConditions, 
+                  cores = nrcores, 
+                  mytimes = times)
 head(resultFC)
 ```
 Note that each gene appears in the data frame as often as the number of time points. The result of the fold change analysis can be visualized as a vulcano plot:
-```{r vulcano, message=FALSE, eval=TRUE}
-ggplot(subset(resultFC, FCdetect!="none"), aes(x=logFoldChange, y=-log10(pValue), color=FCdetect)) + xlab("log2(Fold Change)") + geom_point(shape=20)
+```{r vulcano, message=FALSE, eval=TRUE, fig.height = 4.5, fig.width = 7}
+library(ggplot2)
+ggplot(subset(resultFC, FCdetect!="none"), 
+       aes(x=logFoldChange, y=-log10(pValue), color=FCdetect)) + 
+       xlab("log2(Fold Change)") + geom_point(shape=20)
 ```
 
 Next, the gene expression profiles are analyzed for switches. A switch appears if the profile shows a statistically significant up- or downregulation at a specific time point. If up- or downregulation is detected at multiple time points, the time point with the best likelihood value (for the one-step model) is chosen. The result is saved in a `data.frame` with information on whether a switch has been detected, at which time point and with which p-value based on the likelihood ratio test.
-```{r switch_analysis, message=TRUE, eval=TRUE}
-resultSwitch <- getSwitch(dataset = mydata, experimentStepDetection = "WT", cores = nrcores, mytimes = times)
+```{r switch_analysis, message=FALSE, eval=TRUE}
+resultSwitch <- getSwitch(dataset = mydata,
+                          experimentStepDetection = "WT",
+                          cores = nrcores,
+                          mytimes = times)
 head(resultSwitch)
 ```
 After fold change and switch analysis have been performed, results shall be collected in one and the same data.frame using the `combineResults` function. This function basically prepares the results to be handed over to `plotSSGS`.
-```{r combination, message=TRUE, eval=TRUE}
+```{r combination, message=FALSE, eval=TRUE}
 resultCombined <- combineResults(resultSwitch, resultFC)
 head(resultCombined)
 ```
 Finally, the `plotSSGS` function performs Fisher's exact test for each combination of fold change time point and switch time point. Results are plotted as a heat map highlighting combinations with a high significance.
-```{r plot, message=FALSE, eval=TRUE}
+```{r plot, message = FALSE, eval = TRUE, fig.height = 5, fig.width = 7}
 plotSSGS(resultCombined, times[-length(times)])
 ```
 
-In order to document the result of the analysis, the function `outputGeneTables` provides a possibility to automatically ouput switch and fold change information into csv files.
-```{r output, message=TRUE, eval=FALSE}
+In order to document the result of the analysis, the function `outputGeneTables` provides a possibility to automatically output switch and fold change information into table files (.txt).
+```{r output, message=FALSE, eval=TRUE}
 outputGeneTables(resultCombined)
+```
+The function `outputGeneTables` generates five .txt files. Two of them (geneNamelist) contain gene lists with gene name for genes that switch up and down respectively. The other two (genelist) contain exactly the same output but with gene identifiers instead of gene names depending on what you prefer for further analysis. Each column corresponds to a combination of switch time point, fold change direction and time point of fold change. All genes for which fold change was detected at the indicated time point and switch was detected at the indicated time point are listed in the corresponding column. Note that a single gene may appear multiple times. The fifth .txt file (switchList) contains information on detected switches in a different format. The output consists of table with six columns with each row corresponding to one gene. Detected switches are indicated by 1, -1 and 0 for switch up, switch down and no switch, respectively. If a switch was detected, the column timepoint indicated the corresponding time point of switch detection.
+
+## Session Info
+```{r session}
+sessionInfo()
 ```
