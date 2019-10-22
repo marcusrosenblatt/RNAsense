@@ -17,6 +17,19 @@ Data.frame containing information on switch and fold change detection for each g
 \description{
 Results of switch and fold change analysis are collected in one data.frame
 }
+\examples{
+data(MZsox)
+mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+resultFC <- getFC(dataset = mydata,
+myanalyzeConditions = c("WT", "MZsox"),
+cores = 1,
+mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+resultSwitch <- getSwitch(dataset = mydata,
+experimentStepDetection = "WT",
+cores = 1,
+mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+combineResults(resultSwitch, resultFC)
+}
 \author{
 Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
 }

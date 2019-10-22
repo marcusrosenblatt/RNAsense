@@ -22,6 +22,14 @@ Data.frame containing gene names, log fold change and p-values calculated from N
 \description{
 For each gene and for each time point, RNA-seq count data is analyzed for fold changes between two experimental conditions. This functions bases on functions from the R package NBPSeq package for fold change analysis
 }
+\examples{
+data(MZsox)
+mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+resultFC <- getFC(dataset = mydata,
+myanalyzeConditions = c("WT", "MZsox"),
+cores = 1,
+mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+}
 \author{
 Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
 }

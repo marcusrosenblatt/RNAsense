@@ -24,6 +24,14 @@ Data.frame containing gene names and results of switch detection, information ab
 \description{
 For each gene, time-resolved RNA-seq measurements are analyzed for occurence of switches (up or down)
 }
+\examples{
+data(MZsox)
+mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+resultSwitch <- getSwitch(dataset = mydata,
+experimentStepDetection = "WT",
+cores = 1,
+mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+}
 \author{
 Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
 }

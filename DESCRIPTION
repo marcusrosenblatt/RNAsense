@@ -13,6 +13,6 @@ LazyData: false
 RoxygenNote: 6.1.1
 BugReports: https://github.com/marcusrosenblatt/RNAsense
 biocViews: RNASeq, GeneExpression, DifferentialExpression
-Imports: ggplot2, parallel, NBPSeq, qvalue, SummarizedExperiment, stats, utils
+Imports: ggplot2, parallel, NBPSeq, qvalue, SummarizedExperiment, stats, utils, methods
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr

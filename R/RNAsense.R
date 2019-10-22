@@ -5,6 +5,7 @@
 #' @import SummarizedExperiment
 #' @importFrom stats fisher.test pchisq time var
 #' @importFrom utils write.table data
+#' @importFrom methods is
 
 #' @title Detect switching genes
 #' @description For each gene, time-resolved RNA-seq measurements are analyzed for occurence of switches (up or down)

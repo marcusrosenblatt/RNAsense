@@ -22,15 +22,20 @@ Genes are sorted into groups with respect to switch time and time point of fold 
 }
 \examples{
 library(ggplot2)
-times <- seq(0, 2*pi, 0.1)
-values <- sin(times)
-data <- data.frame(
-   time = times, 
-   value = c(values, 1.2*values, 1.4*values, 1.6*values), 
-   group = rep(c("C1", "C2", "C3", "C4"), each = length(times))
-)
-qplot(time, value, data = data, color = group, geom = "line") + 
-   theme_dMod() + scale_color_dMod()
+data(MZsox)
+mydata <- MZsox[seq(1,nrow(mydata), by=10),]
+resultFC <- getFC(dataset = mydata,
+myanalyzeConditions = c("WT", "MZsox"),
+cores = 1,
+mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+resultSwitch <- getSwitch(dataset = mydata,
+experimentStepDetection = "WT",
+cores = 1,
+mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+resultCombined <- combineResults(resultSwitch, resultFC)
+plotSSGS(myresultCombiend = resultCombined,
+mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6),
+myanalyzeConditions = c("WT", "MZsox"))
 }
 \author{
 Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
