@@ -40,37 +40,20 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
                 data.frame(name=rowData(mydatasub)$name[i],
                            genename=rowData(mydatasub)$genename[i],
                            timepoint=t,
-                           value=var(temp1)*(length(temp1)-1) + var(temp2)*(length(temp2)-1))
-            })), var=var(temp$value)*(length(temp$value)-1))
+                           value=var(temp1)*(length(temp1)-1)(length(temp1)) + var(temp2)*(length(temp2)-1)/length(temp2))
+            })), var=var(temp$value)*(length(temp$value)-1)/length(temp$value))
             out <- out[which(out$value==min(out$value))[1],]
             pValue <- NA
             if(out$value==0){out <- cbind(out, switch="none"); out$timepoint = NA} else {
-                x <- temp$value[order(temp$time)]
-                n <- length(x)
-                m <- length(temp$value[which(temp$time <= 4)])
-                dfm <- m/3
-                dfn <- n/3
-                model <- c(rep(mean(x[1:m]),m),rep(mean(x[(m+1):n]),n-m))
-                sstot <- sum((x-mean(x))**2)
-                sse <- sum((x-model)**2)
-                ssr <- sum((model-mean(x))**2)
-                sstot==sse+ssr
-                msr <- ssr/(dfm-1)
-                mse <- sse/(dfn-dfm)
-                f <- msr/mse
-                #anz <- 100000
-                #count(rf(anz, m-1, n-m) > f)/anz
-                pValue <- pf(f, dfm-1, dfn-dfm, lower.tail=F)
-              
-                #pValue <- pchisq(out$var/out$value,1)
-                if (pValue < pValueSwitch) {
+                pValue <- pchisq(out$var/out$value,1)
+                if ((1-pValue) < pValueSwitch) {
                     temp1 <- subset(temp, time <= out$timepoint)$value
                     temp2 <- subset(temp, time > out$timepoint)$value
                     if(mean(temp1) > mean(temp2)) out <- cbind(out, switch="down")
                         else out <- cbind(out, switch="up")
                 } else {out <- cbind(out, switch="none"); out$timepoint = NA}
             }
-            return(cbind(out[,c("name","genename", "timepoint", "switch")], pvalueSwitch = pValue, experiment=experimentStepDetection))
+            return(cbind(out[,c("name","genename", "timepoint", "switch")], pvalueSwitch = (1-pValue), experiment=experimentStepDetection))
         }))
     }, mc.cores = cores))
 }
