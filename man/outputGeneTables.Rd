@@ -23,6 +23,21 @@ Working directory where results have been written to
 Output information on switching genes (up/down) in tabular format (gene identifier/gene name) are created as .txt file and written to the specified working directory.
 Two of the generated files (geneNamelist) contain gene lists with gene name for genes that switch up and down respectively. The other two (genelist) contain exactly the same output but with gene identifiers instead of gene names depending on what you prefer for further analysis. Each column corresponds to a combination of switch time point, fold change direction and time point of fold change. All genes for which fold change was detected at the indicated time point and switch was detected at the indicated time point are listed in the corresponding column. Note that a single gene may appear multiple times. The fifth .txt file (switchList) contains information on detected switches in a different format. The output consists of table with six columns with each row corresponding to one gene. Detected switches are indicated by 1, -1 and 0 for switch up, switch down and no switch, respectively. If a switch was detected, the column timepoint indicated the corresponding time point of switch detection.
 }
+\examples{
+library(ggplot2)
+data(MZsox)
+mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+resultFC <- getFC(dataset = mydata,
+myanalyzeConditions = c("WT", "MZsox"),
+cores = 1,
+mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+resultSwitch <- getSwitch(dataset = mydata,
+experimentStepDetection = "WT",
+cores = 1,
+mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+resultCombined <- combineResults(resultSwitch, resultFC)
+outputGeneTables(resultCombined)
+}
 \author{
 Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
 }

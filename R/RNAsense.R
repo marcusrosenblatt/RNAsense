@@ -283,6 +283,20 @@ plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanaly
 #' @return Working directory where results have been written to
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
+#' @examples
+#' library(ggplot2)
+#' data(MZsox)
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+#' resultFC <- getFC(dataset = mydata,
+#' myanalyzeConditions = c("WT", "MZsox"),
+#' cores = 1,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+#' resultSwitch <- getSwitch(dataset = mydata,
+#' experimentStepDetection = "WT",
+#' cores = 1,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+#' resultCombined <- combineResults(resultSwitch, resultFC)
+#' outputGeneTables(resultCombined)
 #' @export
 outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times, myanalyzeConditions = analyzeConditions, mywd = NULL){
     if(is.null(mywd)) mywd <- getwd()
