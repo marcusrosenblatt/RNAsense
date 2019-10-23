@@ -40,7 +40,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
                 data.frame(name=rowData(mydatasub)$name[i],
                            genename=rowData(mydatasub)$genename[i],
                            timepoint=t,
-                           value=var(temp1)*(length(temp1)-1)(length(temp1)) + var(temp2)*(length(temp2)-1)/length(temp2))
+                           value=var(temp1)*(length(temp1)-1)/(length(temp1)) + var(temp2)*(length(temp2)-1)/length(temp2))
             })), var=var(temp$value)*(length(temp$value)-1)/length(temp$value))
             out <- out[which(out$value==min(out$value))[1],]
             pValue <- NA
