@@ -296,7 +296,9 @@ plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanaly
 #' cores = 1,
 #' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
 #' resultCombined <- combineResults(resultSwitch, resultFC)
-#' outputGeneTables(resultCombined)
+#' outputGeneTables(resultCombined,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6),
+#' myanalyzeConditions = c("WT", "MZsox"))
 #' @export
 outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times, myanalyzeConditions = analyzeConditions, mywd = NULL){
     if(is.null(mywd)) mywd <- getwd()

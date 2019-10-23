@@ -36,7 +36,9 @@ experimentStepDetection = "WT",
 cores = 1,
 mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
 resultCombined <- combineResults(resultSwitch, resultFC)
-outputGeneTables(resultCombined)
+outputGeneTables(resultCombined,
+mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6),
+myanalyzeConditions = c("WT", "MZsox"))
 }
 \author{
 Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
