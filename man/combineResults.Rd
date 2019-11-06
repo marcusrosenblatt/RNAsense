@@ -22,7 +22,7 @@ Results of switch and fold change analysis are collected in one data.frame
 }
 \examples{
 data(MZsox)
-mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+mydata <- MZsox[seq(1,nrow(MZsox), by=20),]
 resultFC <- getFC(dataset = mydata,
 myanalyzeConditions = c("WT", "MZsox"),
 cores = 1,

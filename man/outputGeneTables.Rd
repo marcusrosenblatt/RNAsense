@@ -26,7 +26,7 @@ Two of the generated files (geneNamelist) contain gene lists with gene name for 
 \examples{
 library(ggplot2)
 data(MZsox)
-mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+mydata <- MZsox[seq(1,nrow(MZsox), by=20),]
 resultFC <- getFC(dataset = mydata,
 myanalyzeConditions = c("WT", "MZsox"),
 cores = 1,

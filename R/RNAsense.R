@@ -21,7 +21,7 @@
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' @examples
 #' data(MZsox)
-#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=20),]
 #' resultSwitch <- getSwitch(dataset = mydata,
 #' experimentStepDetection = "WT",
 #' cores = 1,
@@ -58,7 +58,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
     }, mc.cores = cores))
 }
 
-#' @title Detect switching genes
+#' @title Detect switching genes (new version)
 #' @description For each gene and for each time point, RNA-seq count data is analyzed for fold changes between two experimental conditions. This functions bases on functions from the R package NBPSeq package for fold change analysis
 #'
 #' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link{DataFrame} with columns name (geneID) and genename (the gene names), as colData provide a \link{DataFrame} with columns condition, time and replicate
@@ -72,7 +72,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' @examples
 #' data(MZsox)
-#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=20),]
 #' resultFC <- getSwitchNew(dataset = mydata,
 #' experimentStepDetection = "WT",
 #' cores = 1,
@@ -164,11 +164,12 @@ getSwitchNew <- function(dataset = mydata, experimentStepDetection = "WT", cores
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' @examples
 #' data(MZsox)
-#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=20),]
 #' resultFC <- getFC(dataset = mydata,
 #' myanalyzeConditions = c("WT", "MZsox"),
 #' cores = 1,
-#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6),
+#' pValueFC=0.01)
 #' @export
 getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = 1, mytimes = times, pValueFC = 0.01){
     stopifnot(is(dataset, "SummarizedExperiment"))
@@ -246,7 +247,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' @examples
 #' data(MZsox)
-#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=20),]
 #' resultFC <- getFC(dataset = mydata,
 #' myanalyzeConditions = c("WT", "MZsox"),
 #' cores = 1,
@@ -289,7 +290,7 @@ combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC,
 #' @examples
 #' library(ggplot2)
 #' data(MZsox)
-#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=20),]
 #' resultFC <- getFC(dataset = mydata,
 #' myanalyzeConditions = c("WT", "MZsox"),
 #' cores = 1,
@@ -384,7 +385,7 @@ plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanaly
 #' @examples
 #' library(ggplot2)
 #' data(MZsox)
-#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=20),]
 #' resultFC <- getFC(dataset = mydata,
 #' myanalyzeConditions = c("WT", "MZsox"),
 #' cores = 1,
