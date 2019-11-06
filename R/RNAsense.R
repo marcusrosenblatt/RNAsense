@@ -12,7 +12,7 @@
 #'
 #' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link{DataFrame} with columns name (geneID) and genename (the gene names), as colData provide a \link{DataFrame} with columns condition, time and replicate
 #' @param experimentStepDetection Character, Name of condition for which switch detection is performed
-#' @param pValueSwitch Numeric, A threshold for counting cells as being invaded or not. When cells move towards negative z-direction, threshold should be negative.
+#' @param pValueSwitch Numeric, pValue for switch detection
 #' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
 #' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data
 #'
@@ -33,7 +33,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
     do.call(rbind, mclapply(seq(1,ceiling(nrow(data)/500)), function(index){
         mydatasub <- data[seq((index-1)*500+1,min(index*500,nrow(data))),]
         do.call(rbind, lapply(seq(1,nrow(mydatasub)), function(i){
-            temp <- data.frame(value = assays(mydatasub)[[1]][i,], time = mytimes)
+            temp <- data.frame(value = assays(mydatasub)[[1]][i,], time = as.numeric(colData(data)$time))
             out <- cbind(do.call(rbind, lapply(sort(unique(temp$time))[-length(sort(unique(temp$time)))], function(t){
                 temp1 <- subset(temp, time <= t)$value
                 temp2 <- subset(temp, time > t)$value
@@ -41,7 +41,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
                            genename=rowData(mydatasub)$genename[i],
                            timepoint=t,
                            value=var(temp1)*(length(temp1)-1)/(length(temp1)) + var(temp2)*(length(temp2)-1)/length(temp2))
-            })), var=var(temp$value)*(length(temp$value)-1)/length(temp$value))
+            })), var=var(temp$value)*(length(temp$value)-1)/7)
             out <- out[which(out$value==min(out$value))[1],]
             pValue <- NA
             if(out$value==0){out <- cbind(out, switch="none"); out$timepoint = NA} else {
@@ -58,6 +58,98 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
     }, mc.cores = cores))
 }
 
+#' @title Detect switching genes
+#' @description For each gene and for each time point, RNA-seq count data is analyzed for fold changes between two experimental conditions. This functions bases on functions from the R package NBPSeq package for fold change analysis
+#'
+#' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link{DataFrame} with columns name (geneID) and genename (the gene names), as colData provide a \link{DataFrame} with columns condition, time and replicate
+#' @param experimentStepDetection Character, Name of condition for which switch detection is performed
+#' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
+#' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data
+#' @param pValueSwitch Numeric, pValue for switch detection
+#'
+#' @return Data.frame containing gene names, log fold change and p-values calculated from NBPSeq, each gene appears as often as available time points
+#'
+#' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
+#' @examples
+#' data(MZsox)
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+#' resultFC <- getSwitchNew(dataset = mydata,
+#' experimentStepDetection = "WT",
+#' cores = 1,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6),
+#' pValueSwitch=0.01)
+#' @export
+getSwitchNew <- function(dataset = mydata, experimentStepDetection = "WT", cores = 1, mytimes = times, pValueSwitch = 0.01){
+  stopifnot(is(dataset, "SummarizedExperiment"))
+  # auxiliary function getD
+  getD <- function(value, FC, thFoldChange=NA, pValueSwitch=pValueSwitch){
+    if(is.na(value) | is.na(FC)){return("none")} else {
+      if(is.na(thFoldChange) & is.na(pValueSwitch)){
+        return("none")
+      } else if(!is.na(thFoldChange) & is.na(pValueSwitch)){
+        if(FC < -log2(thFoldChange)) {return("down")}
+        else if(FC > log2(thFoldChange)) {return("up")}
+        else return("none")
+      } else if(is.na(thFoldChange) & !is.na(pValueSwitch)){
+        if(value < pValueSwitch){
+          if(FC < 0) {return("down")}
+          if(FC > 0) {return("up")}
+        } else return("none")
+      } else {
+        if((value < pValueSwitch) & (FC < -log2(thFoldChange))) {return("down")}
+        else if((value < pValueSwitch) & (FC > log2(thFoldChange))) {return("up")}
+        else return("none")
+      }
+      
+    }
+  }
+  out <- do.call(rbind, mclapply(mytimes[-length(mytimes)], function(t){
+    data <- assays(dataset[,colData(dataset)$condition==experimentStepDetection])[[1]]
+    
+    ## Specify treatment groups
+    grp.ids = as.character((colData(dataset)$time <= t))[colData(dataset)$condition==experimentStepDetection]  # Numbers or strings are both OK
+    
+    ## Estimate normalization factors
+    norm.factors = estimate.norm.factors(data);
+    
+    ## Prepare an NBP object, adjust the library sizes by thinning the counts.
+    set.seed(999)
+    obj = prepare.nbp(data, grp.ids, lib.sizes=colSums(data), norm.factors=norm.factors, print.level = 0);
+    
+    ## Fit a dispersion model (NBQ by default)
+    obj = estimate.disp(obj, print.level = 0);
+    
+    ## Perform exact NB test
+    grp1 = "TRUE";
+    grp2 = "FALSE";
+    
+    obj = exact.nb.test(obj, grp1, grp2, print.level = 0);
+    
+    # ## Output results
+    out <- data.frame(name=rowData(dataset)$name,
+                      genename=rowData(dataset)$genename,
+                      logFoldChangeSwitch = obj$log.fc,
+                      pvalueSwitch = obj$p.values,
+                      timepoint=t,
+                      experiment=experimentStepDetection)
+    cbind(out, switch=vapply(seq(1,dim(out)[1]), function(i){
+      getD(out$pValueSwitch[i],
+           out$logFoldChangeSwitch[i],
+           thFoldChange = 2,  ## ignored, if NA
+           pValueSwitch = pValueSwitch  ## ignored, if NA
+      )
+    }, c("up")))
+  }, mc.cores = cores))
+  out <- do.call(rbind, lapply(unique(out$name), function(myname){
+    sub <- subset(out, name==myname)
+    if(!is.infinite(max(sub$logFoldChange**2))) 
+      sub[which(sub$logFoldChange**2==max(sub$logFoldChange**2)),]
+    else
+      sub[which(is.infinite(max(sub$logFoldChange**2)) & sub$pValue == min(sub$pValue)),]
+  }))
+  return(out)
+}
+
 #' @title Detect fold changes
 #' @description For each gene and for each time point, RNA-seq count data is analyzed for fold changes between two experimental conditions. This functions bases on functions from the R package NBPSeq package for fold change analysis
 #'
@@ -65,6 +157,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
 #' @param myanalyzeConditions Character vector, Name of experimental conditions
 #' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
 #' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data
+#' @param pValuFC Numeric, p-value for fold change detection
 #'
 #' @return Data.frame containing gene names, log fold change and p-values calculated from NBPSeq, each gene appears as often as available time points
 #'
@@ -77,10 +170,10 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
 #' cores = 1,
 #' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
 #' @export
-getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = 1, mytimes = times){
+getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cores = 1, mytimes = times, pValueFC = 0.01){
     stopifnot(is(dataset, "SummarizedExperiment"))
     # auxiliary function getD
-    getD <- function(value, FC, thFoldChange=NA, pValueFC=0.05){
+    getD <- function(value, FC, thFoldChange=NA, pValueFC=0.01){
         if(is.na(value) | is.na(FC)){return("none")} else {
             if(is.na(thFoldChange) & is.na(pValueFC)){
                 return("none")
@@ -111,6 +204,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
         norm.factors = estimate.norm.factors(data);
 
         ## Prepare an NBP object, adjust the library sizes by thinning the counts.
+        set.seed(999)
         obj = prepare.nbp(data, grp.ids, lib.sizes=colSums(data), norm.factors=norm.factors, print.level = 0);
 
         ## Fit a dispersion model (NBQ by default)
@@ -123,12 +217,16 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
         obj = exact.nb.test(obj, grp1, grp2, print.level = 0);
 
         # ## Output results
-        out <- data.frame(name=rowData(dataset)$genename, logFoldChange = obj$log.fc, pValue = obj$p.values, time=t)
+        out <- data.frame(name=rowData(dataset)$name,
+                          genename=rowData(dataset)$genename,
+                          logFoldChange = obj$log.fc,
+                          pValue = obj$p.values,
+                          time=t)
         cbind(out, FCdetect=vapply(seq(1,dim(out)[1]), function(i){
             getD(out$pValue[i],
                 out$logFoldChange[i],
                 thFoldChange = 2,  ## ignored, if NA
-                pValueFC = 0.05  ## ignored, if NA
+                pValueFC = pValueFC  ## ignored, if NA
             )
         }, c("WT > condition")))
     }, mc.cores = cores))
@@ -242,7 +340,7 @@ plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanaly
     }
 
     out <- do.call(rbind, lapply(mytimes, function(t){
-        do.call(rbind, lapply(paste0(format(seq(2.5,6,by=0.5), nsmall = 1),"hpf"), function(x){
+        do.call(rbind, lapply(paste0(format(mytimes, nsmall = 1),"hpf"), function(x){
             do.call(rbind, lapply(c("FCdown", "FCup"), function(ident){
                 do.call(rbind, lapply(c("up", "down"), function(myswitch){
                     cbind(getFT(myresult=subset(myresultCombined, experiment=="WT"), myswitch=myswitch, switchtime = t, xaxis = x, identifier = ident),
@@ -306,9 +404,9 @@ outputGeneTables <- function(myresultCombined = resultCombined, mytimes = times,
     genetableDown <- c()
     geneNametableUp <- c()
     geneNametableDown <- c()
-    for (t in mytimes){
+    for (t in mytimes[-length(mytimes)]){
         for(identifier in c("FCdown", "FCup")){
-            for(x in paste0(format(seq(2.5,6,by=0.5), nsmall = 1),"hpf")){
+            for(x in paste0(format(mytimes, nsmall = 1),"hpf")){
                     if(identifier=="FCdown"){
                         genesUp <- as.character(unique(subset(myresultCombined, switch=="up" & timepoint==t & grepl(x, FCdown))$name))
                         genesUp <- c(genesUp, rep("",3000-length(genesUp)))
