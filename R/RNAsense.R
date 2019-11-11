@@ -58,6 +58,77 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
     }, mc.cores = cores))
 }
 
+#' @title Detect switching genes
+#' @description For each gene, time-resolved RNA-seq measurements are analyzed for occurence of switches (up or down)
+#'
+#' @param dataset Object of class SummarizedExperiment, output of \link{SummarizedExperiment}, as assays use a numeric matrix with your RNAseq count data, rows correspond to different genes, columns correspond to different experiments, as rowData provide a \link{DataFrame} with columns name (geneID) and genename (the gene names), as colData provide a \link{DataFrame} with columns condition, time and replicate
+#' @param experimentStepDetection Character, Name of condition for which switch detection is performed
+#' @param pValueSwitch Numeric, A threshold for counting cells as being invaded or not. When cells move towards negative z-direction, threshold should be negative.
+#' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
+#' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data
+#' @param chooseFirst, boolean, if TRUE (default), the earliest time point is chosen for which a switch could be detected, if FALSE, the time point with the best likelihood for the one-step model is chosen
+#'
+#' @return Data.frame containing gene names and results of switch detection, information about switch time point and direction
+#'
+#' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
+#' @examples
+#' data(MZsox)
+#' mydata <- MZsox[seq(1,nrow(MZsox), by=10),]
+#' resultSwitch <- getSwitch(dataset = mydata,
+#' experimentStepDetection = "WT",
+#' cores = 1,
+#' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6))
+#' @export
+getSwitchCorrect <- function(dataset = mydata, experimentStepDetection = "WT", pValueSwitch = 0.05, cores = 1, mytimes=times, chooseFirst=TRUE){
+  stopifnot(is(dataset, "SummarizedExperiment"))
+  data <- dataset[,colData(dataset)$condition==experimentStepDetection]
+  do.call(rbind, mclapply(seq(1,ceiling(nrow(data)/500)), function(index){
+    mydatasub <- data[seq((index-1)*500+1,min(index*500,nrow(data))),]
+    do.call(rbind, lapply(seq(1,nrow(mydatasub)), function(i){
+      temp <- data.frame(value = assays(mydatasub)[[1]][i,], time = as.numeric(colData(data)$time))
+      out <- cbind(do.call(rbind, lapply(sort(unique(temp$time))[-length(sort(unique(temp$time)))], function(t){
+        temp1 <- subset(temp, time <= t)$value
+        temp2 <- subset(temp, time > t)$value
+        data.frame(name=rowData(mydatasub)$name[i],
+                   genename=rowData(mydatasub)$genename[i],
+                   timepoint=t,
+                   value=var(temp1)*(length(temp1)-1) + var(temp2)*(length(temp2)-1))
+      })), var=var(temp$value)*(length(temp$value)-1))
+      if(chooseFirst){
+        out2 <- out[which(1-pchisq(out$var/out$value,1) < pValueSwitch),]
+        pValue <- NA
+        if(dim(out2)[1]==0){out <- cbind(out, switch="none"); out$timepoint = NA} else {
+          print(out2)
+          out <- out2[which(out$timepoint==min(out$timepoint))[1],]
+          pValue <- pchisq(out$var/out$value,1)
+          if ((1-pValue) < pValueSwitch) {
+            temp1 <- subset(temp, time <= out$timepoint)$value
+            temp2 <- subset(temp, time > out$timepoint)$value
+            if(mean(temp1) > mean(temp2)) out <- cbind(out, switch="down")
+            else out <- cbind(out, switch="up")
+          } else {out <- cbind(out, switch="none"); out$timepoint = NA}
+        }
+        return(cbind(out[,c("name","genename", "timepoint", "switch")], pvalueSwitch = (1-pValue), experiment=experimentStepDetection))
+      } else {
+        out <- out[which(out$value==min(out$value))[1],]
+        pValue <- NA
+        if(out$value==0){out <- cbind(out, switch="none"); out$timepoint = NA} else {
+          pValue <- pchisq(out$var/out$value,1)
+          if ((1-pValue) < pValueSwitch) {
+            temp1 <- subset(temp, time <= out$timepoint)$value
+            temp2 <- subset(temp, time > out$timepoint)$value
+            if(mean(temp1) > mean(temp2)) out <- cbind(out, switch="down")
+            else out <- cbind(out, switch="up")
+          } else {out <- cbind(out, switch="none"); out$timepoint = NA}
+        }
+        return(cbind(out[,c("name","genename", "timepoint", "switch")], pvalueSwitch = (1-pValue), experiment=experimentStepDetection))
+      }
+    }))
+  }, mc.cores = cores))
+}
+
+
+
 #' @title Detect switching genes (new version)
 #' @description For each gene and for each time point, RNA-seq count data is analyzed for fold changes between two experimental conditions. This functions bases on functions from the R package NBPSeq package for fold change analysis
 #'
@@ -133,20 +204,37 @@ getSwitchNew <- function(dataset = mydata, experimentStepDetection = "WT", cores
                       timepoint=t,
                       experiment=experimentStepDetection)
     cbind(out, switch=vapply(seq(1,dim(out)[1]), function(i){
-      getD(out$pValueSwitch[i],
+      getD(out$pvalueSwitch[i],
            out$logFoldChangeSwitch[i],
            thFoldChange = 2,  ## ignored, if NA
            pValueSwitch = pValueSwitch  ## ignored, if NA
       )
     }, c("up")))
   }, mc.cores = cores))
-  out <- do.call(rbind, lapply(unique(out$name), function(myname){
+  out <- do.call(rbind, mclapply(unique(out$name), function(myname){
     sub <- subset(out, name==myname)
-    if(!is.infinite(max(sub$logFoldChange**2))) 
-      sub[which(sub$logFoldChange**2==max(sub$logFoldChange**2)),]
-    else
-      sub[which(is.infinite(max(sub$logFoldChange**2)) & sub$pValue == min(sub$pValue)),]
-  }))
+    if(Reduce("&",sub$switch=="none")){
+      sub[1,]
+    } else {
+      temp <- data.frame(value = assays(dataset[rowData(dataset)$name==myname,
+                                                colData(dataset)$condition==experimentStepDetection])[[1]][1,],
+                         time = as.numeric(colData(dataset)$time[which(colData(dataset)$condition==experimentStepDetection)]))
+      modelvalue <- NA
+      tout <- sub$timepoint[1]
+      for(myt in sub$timepoint){
+        temp1 <- subset(temp, time <= myt)$value
+        temp2 <- subset(temp, time > myt)$value
+        if(!is.na(modelvalue)){
+          testvalue <- var(temp1)*(length(temp1)-1) + var(temp2)*(length(temp2)-1)
+          if(modelvalue > testvalue){
+            tout <- myt
+            modelvalue <- testvalue
+          }
+        } else modelvalue <- var(temp1)*(length(temp1)-1) + var(temp2)*(length(temp2)-1)
+      }
+      sub[which(sub$timepoint==tout),]
+    }
+  }, mc.cores = cores))
   return(out)
 }
 
@@ -157,7 +245,7 @@ getSwitchNew <- function(dataset = mydata, experimentStepDetection = "WT", cores
 #' @param myanalyzeConditions Character vector, Name of experimental conditions
 #' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
 #' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data
-#' @param pValuFC Numeric, p-value for fold change detection
+#' @param pValueFC Numeric, p-value for fold change detection
 #'
 #' @return Data.frame containing gene names, log fold change and p-values calculated from NBPSeq, each gene appears as often as available time points
 #'

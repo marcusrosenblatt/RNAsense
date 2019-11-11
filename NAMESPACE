@@ -3,6 +3,7 @@
 export(combineResults)
 export(getFC)
 export(getSwitch)
+export(getSwitchCorrect)
 export(getSwitchNew)
 export(outputGeneTables)
 export(plotSSGS)

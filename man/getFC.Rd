@@ -16,7 +16,7 @@ getFC(dataset = mydata, myanalyzeConditions = analyzeConditions,
 
 \item{mytimes}{Numeric vector, Time points of the time-resolved RNA-seq data}
 
-\item{pValuFC}{Numeric, p-value for fold change detection}
+\item{pValueFC}{Numeric, p-value for fold change detection}
 }
 \value{
 Data.frame containing gene names, log fold change and p-values calculated from NBPSeq, each gene appears as often as available time points
