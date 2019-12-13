@@ -19,7 +19,7 @@ getSwitchCorrect(dataset = mydata, experimentStepDetection = "WT",
 
 \item{mytimes}{Numeric vector, Time points of the time-resolved RNA-seq data}
 
-\item{chooseFirst, }{boolean, if TRUE (default), the earliest time point is chosen for which a switch could be detected, if FALSE, the time point with the best likelihood for the one-step model is chosen}
+\item{chooseFirst}{boolean, if TRUE (default), the earliest time point is chosen for which a switch could be detected, if FALSE, the time point with the best likelihood for the one-step model is chosen}
 }
 \value{
 Data.frame containing gene names and results of switch detection, information about switch time point and direction

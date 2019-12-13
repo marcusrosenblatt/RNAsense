@@ -66,7 +66,7 @@ getSwitch <- function(dataset = mydata, experimentStepDetection = "WT", pValueSw
 #' @param pValueSwitch Numeric, A threshold for counting cells as being invaded or not. When cells move towards negative z-direction, threshold should be negative.
 #' @param cores Numeric, Number of cores for parallelization, default 1 for no parallelization
 #' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data
-#' @param chooseFirst, boolean, if TRUE (default), the earliest time point is chosen for which a switch could be detected, if FALSE, the time point with the best likelihood for the one-step model is chosen
+#' @param chooseFirst boolean, if TRUE (default), the earliest time point is chosen for which a switch could be detected, if FALSE, the time point with the best likelihood for the one-step model is chosen
 #'
 #' @return Data.frame containing gene names and results of switch detection, information about switch time point and direction
 #'
@@ -97,7 +97,7 @@ getSwitchCorrect <- function(dataset = mydata, experimentStepDetection = "WT", p
       if(chooseFirst){
         out2 <- out[which(1-pchisq(out$var/out$value,1) < pValueSwitch),]
         pValue <- NA
-        if(dim(out2)[1]==0){out <- cbind(out, switch="none"); out$timepoint = NA} else {
+        if(dim(out2)[1]==0){out <- cbind(out[1,], switch="none"); out$timepoint = NA} else {
           print(out2)
           out <- out2[which(out$timepoint==min(out$timepoint))[1],]
           pValue <- pchisq(out$var/out$value,1)
@@ -112,7 +112,7 @@ getSwitchCorrect <- function(dataset = mydata, experimentStepDetection = "WT", p
       } else {
         out <- out[which(out$value==min(out$value))[1],]
         pValue <- NA
-        if(out$value==0){out <- cbind(out, switch="none"); out$timepoint = NA} else {
+        if(out$value==0){out <- cbind(out[1,], switch="none"); out$timepoint = NA} else {
           pValue <- pchisq(out$var/out$value,1)
           if ((1-pValue) < pValueSwitch) {
             temp1 <- subset(temp, time <= out$timepoint)$value
