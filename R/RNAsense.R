@@ -359,7 +359,7 @@ combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC,
         if(length(g)>0){g <- do.call(paste,as.list(paste0(g, "hpf")))} else{g <- ""}
         data.frame(FCdown=f,FCup=g)
     }
-    temp <- do.call(rbind, mclapply(myresultSwitch$genename, function(gene){
+    temp <- do.call(rbind, mclapply(myresultSwitch$name, function(gene){
         getFCupdown(gene, myresultFC)
     }, mc.cores = nrcores))
     return(cbind(resultSwitch, temp))
