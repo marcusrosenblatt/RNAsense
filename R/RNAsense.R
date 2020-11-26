@@ -319,7 +319,7 @@ getFC <- function(dataset = mydata, myanalyzeConditions = analyzeConditions, cor
             )
         }, c("WT > condition")))
     }, mc.cores = cores))
-    out$name <- rep(rowData(dataset)$genename, length(mytimes))
+    out$name <- rep(rowData(dataset)$name, length(mytimes))
     return(out)
 }
 
