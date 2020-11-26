@@ -98,7 +98,7 @@ getSwitchCorrect <- function(dataset = mydata, experimentStepDetection = "WT", p
         out2 <- out[which(1-pchisq(out$var/out$value,1) < pValueSwitch),]
         pValue <- NA
         if(dim(out2)[1]==0){out <- cbind(out[1,], switch="none"); out$timepoint = NA} else {
-          print(out2)
+          #print(out2)
           out <- out2[which(out$timepoint==min(out$timepoint))[1],]
           pValue <- pchisq(out$var/out$value,1)
           if ((1-pValue) < pValueSwitch) {
