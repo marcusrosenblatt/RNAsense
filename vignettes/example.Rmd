@@ -77,7 +77,7 @@ head(resultCombined)
 ```
 Finally, the `plotSSGS` function performs Fisher's exact test for each combination of fold change time point and switch time point. Results are plotted as a heat map highlighting combinations with a high significance.
 ```{r plot, message = FALSE, eval = TRUE, fig.height = 5, fig.width = 7}
-plotSSGS(resultCombined, times[-length(times)])
+plotSSGS(resultCombined, times[-length(times)], experimentStepDetection = "WT")
 ```
 
 In order to document the result of the analysis, the function `outputGeneTables` provides a possibility to automatically output switch and fold change information into table files (.txt).

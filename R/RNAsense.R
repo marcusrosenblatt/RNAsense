@@ -371,6 +371,7 @@ combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC,
 #' @param myresultCombined data.frame, output of \link{combineResults}
 #' @param mytimes Numeric vector, Time points of the time-resolved RNA-seq data
 #' @param myanalyzeConditions character vector, the conditions that were analyzed
+#' @param experimentStepDetection character, the condition that was analyzed for switches
 #'
 #' @return SSGS color plot in ggplot format
 #'
