@@ -392,7 +392,7 @@ combineResults <- function(myresultSwitch = resultSwitch, myresultFC = resultFC,
 #' mytimes = c(2.5,3,3.5,4,4.5,5,5.5,6),
 #' myanalyzeConditions = c("WT", "MZsox"))
 #' @export
-plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanalyzeConditions = analyzeConditions){
+plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanalyzeConditions = analyzeConditions, experimentStepDetection = experimentStepDetection){
     # auxiliary function for application of fisher test
     getFT <- function(myresult=result, myswitch="up",switchtime=3, xaxis="2.5hpf", identifier="FCdown"){
         if(identifier == "FCdown"){
@@ -432,8 +432,8 @@ plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanaly
         do.call(rbind, lapply(paste0(format(mytimes, nsmall = 1),"hpf"), function(x){
             do.call(rbind, lapply(c("FCdown", "FCup"), function(ident){
                 do.call(rbind, lapply(c("up", "down"), function(myswitch){
-                    cbind(getFT(myresult=subset(myresultCombined, experiment=="WT"), myswitch=myswitch, switchtime = t, xaxis = x, identifier = ident),
-                          time=t, xaxis=x, identifier=ident, experiment="WT")
+                    cbind(getFT(myresult=subset(myresultCombined, experiment==experimentStepDetection), myswitch=myswitch, switchtime = t, xaxis = x, identifier = ident),
+                          time=t, xaxis=x, identifier=ident, experiment=experimentStepDetection)
                 }))
             }))
         }))
@@ -447,7 +447,7 @@ plotSSGS <- function(myresultCombined = resultCombined, mytimes = times, myanaly
                     "down" = "down")
 
     P <- ggplot(out, aes(x=xaxis, y=time, fill=cluster)) + geom_tile(color="black") +
-        xlab("Stage-specific gene sets WT") + ylab("Switch Time") +theme(axis.text.x = element_text(angle = 70, hjust = 1)) +
+        xlab(paste0("Stage-specific gene sets ",experimentStepDetection)) + ylab("Switch Time") +theme(axis.text.x = element_text(angle = 70, hjust = 1)) +
         scale_x_discrete(breaks=paste0(format(seq(2.5,6, by=0.5),nsmall=1), "hpf"),labels=format(seq(2.5,6, by=0.5),nsmall=1)) +
         scale_y_reverse(breaks=seq(2.5,6, by=0.5)) +
         facet_grid(myswitch~identifier, labeller = as_labeller(mylabeller)) +
